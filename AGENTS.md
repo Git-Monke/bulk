@@ -95,9 +95,10 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 - Updates: summary-calories, summary-protein, summary-carbs, summary-fat, cost-per-day, cost-per-week, variant-breakdown
 
 ### Input Wiring
-- `input-days` — fires `updateSummary()` only (no grid rebuild needed)
-- `input-meals`, `input-variants` — fire `renderMealGrid()` which calls `updateSummary()` at the end
+- `input-days` — fires `saveToStorage()` then `updateSummary()` (no grid rebuild needed)
+- `input-meals`, `input-variants` — fire `saveToStorage()` then `renderMealGrid()` which calls `updateSummary()` at the end
 - Print button — calls `generatePrintView()`
+- Clear button (`#btn-clear`) — confirms, clears `gridState`, resets `nextEntryId`, calls `clearStorage()`, re-renders grid
 
 ### Print View (`generatePrintView`)
 Opens a new browser window with a clean, print-ready HTML document (no app chrome). The document has three sections:
@@ -107,6 +108,26 @@ Opens a new browser window with a clean, print-ready HTML document (no app chrom
 3. **Meal Prep Guide** — one block per unique recipe used anywhere in the plan, showing the total scaled ingredient amounts to cook for the whole week (sum of `multiplier × occurrences` across all slots containing that recipe), and the recipe's `prepNotes`.
 
 The function reuses `computeOccurrences()`, `calculateRecipeMacros()`, and `fmtNum()`. It iterates `gridState` respecting the same in-bounds logic as `updateSummary()`. The new window calls `window.print()` after writing the document so the browser print dialog fires automatically.
+
+### Persistence (`localStorage`)
+
+All plan state is saved to `localStorage` under the key `bulk-meal-planner-v1` on every mutation. The stored JSON shape is:
+
+```json
+{
+  "gridState": { "0-0": [{"entryId": 0, "recipeId": "chicken-rice", "multiplier": 1}], ... },
+  "nextEntryId": 3,
+  "days": "7",
+  "meals": "3",
+  "variants": "3"
+}
+```
+
+- `saveToStorage()` — serialises `gridState` (Map → plain object via `Object.fromEntries`) and the three input values, writes to `localStorage`.
+- `loadFromStorage()` — reads and JSON-parses; returns `null` on any error (missing key, malformed JSON).
+- `clearStorage()` — removes the key.
+- On `DOMContentLoaded`, `loadFromStorage()` is called first; if data exists, inputs and `gridState` are restored before `renderMealGrid()` runs.
+- **Storage key versioning**: if the data shape ever changes in a breaking way, increment the version suffix (`-v2`, etc.) so old data is silently ignored rather than causing a parse error.
 
 ### Number Formatting (`fmtNum`)
 - `fmtNum(num)` — 2 significant figures (e.g. 321 → "320", 1.5 → "1.5")
@@ -147,5 +168,4 @@ No other changes needed — recipes appear in the sidebar automatically under th
 ## Known Gaps / TODO
 
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
-- **No localStorage** — all state is lost on page refresh (out of scope for v1 per SPEC)
 - **Mobile not optimized** — desktop-first per SPEC

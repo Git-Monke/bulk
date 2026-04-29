@@ -30,6 +30,38 @@ function fmtNum(num, isPrice = false) {
 
 
 // ============================================
+// PERSISTENCE
+// ============================================
+
+const STORAGE_KEY = 'bulk-meal-planner-v1';
+
+function saveToStorage() {
+  const data = {
+    gridState: Object.fromEntries(gridState),
+    nextEntryId,
+    days: document.getElementById('input-days')?.value,
+    meals: document.getElementById('input-meals')?.value,
+    variants: document.getElementById('input-variants')?.value,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearStorage() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+
+// ============================================
 // STATE
 // ============================================
 
@@ -60,6 +92,7 @@ function removeEntry(variant, meal, entryId) {
   if (!arr) return;
   const idx = arr.findIndex(e => e.entryId === entryId);
   if (idx !== -1) arr.splice(idx, 1);
+  saveToStorage();
 }
 
 function updateEntryMultiplier(variant, meal, entryId, multiplier) {
@@ -67,6 +100,7 @@ function updateEntryMultiplier(variant, meal, entryId, multiplier) {
   if (!arr) return;
   const entry = arr.find(e => e.entryId === entryId);
   if (entry) entry.multiplier = multiplier;
+  saveToStorage();
 }
 
 
@@ -265,6 +299,7 @@ function renderMealGrid() {
         const cardEl = buildSlotCard(variant, meal, entry);
         if (cardEl) stack.appendChild(cardEl);
 
+        saveToStorage();
         updateSummary();
       },
     });
@@ -375,11 +410,13 @@ function updateSummary() {
 // EVENT LISTENERS
 // ============================================
 
-document.getElementById('input-days').addEventListener('input', updateSummary);
+document.getElementById('input-days').addEventListener('input', () => { saveToStorage(); updateSummary(); });
 document.getElementById('input-meals').addEventListener('input', () => {
+  saveToStorage();
   renderMealGrid();
 });
 document.getElementById('input-variants').addEventListener('input', () => {
+  saveToStorage();
   renderMealGrid();
 });
 document.getElementById('recipe-category').addEventListener('change', () => {
@@ -399,7 +436,7 @@ function generatePrintView() {
 
   // --- Aggregate shopping list: ingredientId -> { name, unit, totalAmount, totalCost } ---
   const shoppingMap = new Map();
-  // --- Aggregate per-recipe totals: recipeId -> totalMultiplier (sum across all slots × occurrences) ---
+  // --- Aggregate per-recipe totals: recipeId -> { totalMultiplier, portions, perPortionMultipliers[] } ---
   const recipeTotals = new Map();
 
   for (let v = 0; v < variants; v++) {
@@ -411,10 +448,13 @@ function generatePrintView() {
         const totalMultiplier = entry.multiplier * occurrences[v];
 
         // Accumulate recipe totals
-        recipeTotals.set(
-          entry.recipeId,
-          (recipeTotals.get(entry.recipeId) || 0) + totalMultiplier
-        );
+        if (!recipeTotals.has(entry.recipeId)) {
+          recipeTotals.set(entry.recipeId, { totalMultiplier: 0, portions: 0, perPortionMultipliers: [] });
+        }
+        const rt = recipeTotals.get(entry.recipeId);
+        rt.totalMultiplier += totalMultiplier;
+        rt.portions += occurrences[v];
+        rt.perPortionMultipliers.push({ multiplier: entry.multiplier, count: occurrences[v] });
 
         // Accumulate ingredient totals
         for (const ing of recipe.ingredients) {
@@ -541,20 +581,36 @@ function generatePrintView() {
     </section>`;
 
   // Section 3: Recipe prep guide
-  const recipeGuideBlocks = [...recipeTotals.entries()].map(([recipeId, totalMult]) => {
+  const recipeGuideBlocks = [...recipeTotals.entries()].map(([recipeId, rt]) => {
     const recipe = RECIPES.find(r => r.id === recipeId);
     if (!recipe) return '';
+    const { totalMultiplier, portions, perPortionMultipliers } = rt;
+
+    // Determine per-portion weight label: if all portions have same multiplier, show one value; otherwise show range
+    const uniqueMultipliers = [...new Set(perPortionMultipliers.map(p => p.multiplier))];
+    const perPortionWeightLabel = uniqueMultipliers.length === 1
+      ? null  // will compute per-ingredient
+      : 'varies';
+
     const ingRows = recipe.ingredients.map(ing => {
       const ingredient = INGREDIENTS[ing.id];
       if (!ingredient) return '';
-      const totalAmount = Math.round(ing.amount * totalMult);
-      return `<tr><td>${ingredient.name}</td><td>${totalAmount} ${ingredient.unit}</td></tr>`;
+      const totalAmount = Math.round(ing.amount * totalMultiplier);
+      let perPortionCell;
+      if (perPortionWeightLabel === 'varies') {
+        const weights = uniqueMultipliers.map(m => `${fmtNum(ing.amount * m)}${ingredient.unit}`).join(' / ');
+        perPortionCell = weights;
+      } else {
+        perPortionCell = `${fmtNum(ing.amount * uniqueMultipliers[0])}${ingredient.unit}`;
+      }
+      return `<tr><td>${ingredient.name}</td><td>${totalAmount} ${ingredient.unit}</td><td style="color:#555">${perPortionCell}</td></tr>`;
     }).join('');
+
     return `
       <div class="recipe-block">
-        <h3>${recipe.name} <span style="font-weight:normal;color:#555">(${fmtNum(totalMult, false)}× total)</span></h3>
+        <h3>${recipe.name} <span style="font-weight:normal;color:#555">(${fmtNum(totalMultiplier, false)}× Servings &nbsp;·&nbsp; ${portions}× Portions)</span></h3>
         <table>
-          <tr><th>Ingredient</th><th>Total Amount</th></tr>
+          <tr><th>Ingredient</th><th>Total Amount</th><th>Per Portion</th></tr>
           ${ingRows}
         </table>
         ${recipe.prepNotes ? `<p class="prep-notes"><strong>Prep:</strong> ${recipe.prepNotes}</p>` : ''}
@@ -616,6 +672,27 @@ document.querySelector('.btn-primary').addEventListener('click', generatePrintVi
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  const saved = loadFromStorage();
+  if (saved) {
+    if (saved.days) document.getElementById('input-days').value = saved.days;
+    if (saved.meals) document.getElementById('input-meals').value = saved.meals;
+    if (saved.variants) document.getElementById('input-variants').value = saved.variants;
+    if (saved.nextEntryId) nextEntryId = saved.nextEntryId;
+    if (saved.gridState) {
+      for (const [key, entries] of Object.entries(saved.gridState)) {
+        gridState.set(key, entries);
+      }
+    }
+  }
+
   renderRecipeList();
   renderMealGrid();
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    if (!confirm('Clear all meals from the plan?')) return;
+    gridState.clear();
+    nextEntryId = 0;
+    clearStorage();
+    renderMealGrid();
+  });
 });

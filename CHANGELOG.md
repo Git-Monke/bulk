@@ -3,6 +3,11 @@
 ## [Unreleased] — 2026-04-29
 
 ### Added
+- **localStorage persistence** — the meal grid, multipliers, and input values (days, meals/day, variants) are automatically saved to `localStorage` and restored on page reload. No data is lost between browser restarts.
+- **Clear button** — a "Clear" button in the navbar removes all meals from the grid and wipes persisted data after a confirmation prompt.
+
+
+### Added
 - **Print view (`generatePrintView`)** — the Print button now opens a clean, human-readable document in a new tab instead of printing the raw app UI. The document contains three sections:
   1. **Summary** — plan config, daily average macros, cost per day/week, and a per-variant breakdown table.
   2. **Shopping list** — all ingredients aggregated across the full plan (total quantity + estimated cost per ingredient, alphabetically sorted, with grand total).
