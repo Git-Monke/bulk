@@ -1,25 +1,123 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="emerald">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bulk</title>
+  <title>Bulk — Meal Prep Planner</title>
   <!-- Tailwind CSS + DaisyUI -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="min-h-screen bg-base-200 flex items-center justify-center">
-    <div class="card bg-base-100 shadow-xl">
-      <div class="card-body">
-        <h1 class="card-title">Hello from Bulk!</h1>
-        <p>Tailwind CSS + DaisyUI + SortableJS ready.</p>
-      </div>
+<body class="min-h-screen bg-base-200">
+  
+  <!-- Top Controls Bar -->
+  <div class="navbar bg-base-100 shadow-sm border-b border-base-300">
+    <div class="flex-1">
+      <a class="btn btn-ghost text-xl font-bold">🥗 Bulk</a>
     </div>
+    <div class="flex-none gap-4">
+      <div class="form-control">
+        <label class="label cursor-pointer gap-2">
+          <span class="label-text">Days:</span>
+          <input type="number" id="input-days" class="input input-bordered input-sm w-16 text-center" value="7" min="1" max="14">
+        </label>
+      </div>
+      <div class="form-control">
+        <label class="label cursor-pointer gap-2">
+          <span class="label-text">Meals/day:</span>
+          <input type="number" id="input-meals" class="input input-bordered input-sm w-16 text-center" value="3" min="1" max="6">
+        </label>
+      </div>
+      <div class="form-control">
+        <label class="label cursor-pointer gap-2">
+          <span class="label-text">Variants:</span>
+          <input type="number" id="input-variants" class="input input-bordered input-sm w-16 text-center" value="3" min="1" max="7">
+        </label>
+      </div>
+      <button class="btn btn-primary btn-sm">Print</button>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="flex h-[calc(100vh-64px)]">
+    
+    <!-- Left Sidebar: Recipe List -->
+    <aside class="w-72 bg-base-100 border-r border-base-300 overflow-y-auto p-4 flex-shrink-0">
+      <h2 class="font-bold text-lg mb-4">Recipes</h2>
+      <div id="recipe-list" class="space-y-2">
+        <!-- Recipes will be injected here -->
+      </div>
+    </aside>
+
+    <!-- Main Grid Area -->
+    <main class="flex-1 overflow-auto p-6 bg-base-200">
+      <div id="meal-grid" class="grid gap-4 min-h-full">
+        <!-- Meal slots will be injected here -->
+        <!-- Placeholder: Empty state -->
+        <div class="col-span-full row-span-full flex items-center justify-center">
+          <div class="text-center text-base-content/50">
+            <p class="text-4xl mb-2">🍽️</p>
+            <p>Configure days, meals, and variants above to generate your meal grid</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Sidebar: Meal Plan Summary -->
+    <aside class="w-80 bg-base-100 border-l border-base-300 overflow-y-auto p-4 flex-shrink-0">
+      <h2 class="font-bold text-lg mb-4">Meal Plan Summary</h2>
+      
+      <!-- Daily Average Card -->
+      <div class="card bg-base-200 mb-4">
+        <div class="card-body p-4">
+          <h3 class="font-semibold text-sm mb-2">Daily Average</h3>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div>Calories</div>
+            <div class="text-right font-mono" id="summary-calories">0 kcal</div>
+            <div>Protein</div>
+            <div class="text-right font-mono" id="summary-protein">0g</div>
+            <div>Carbs</div>
+            <div class="text-right font-mono" id="summary-carbs">0g</div>
+            <div>Fat</div>
+            <div class="text-right font-mono" id="summary-fat">0g</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cost Summary Card -->
+      <div class="card bg-base-200 mb-4">
+        <div class="card-body p-4">
+          <h3 class="font-semibold text-sm mb-2">Cost Summary</h3>
+          <div class="space-y-1 text-sm">
+            <div class="flex justify-between">
+              <span>Per day</span>
+              <span class="font-mono" id="cost-per-day">$0.00</span>
+            </div>
+            <div class="flex justify-between font-semibold">
+              <span>Per week</span>
+              <span class="font-mono" id="cost-per-week">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Variant Breakdown -->
+      <div class="card bg-base-200">
+        <div class="card-body p-4">
+          <h3 class="font-semibold text-sm mb-2">Variant Breakdown</h3>
+          <div id="variant-breakdown" class="space-y-2 text-sm">
+            <!-- Variant cards will be injected here -->
+            <p class="text-base-content/50 text-xs">No meals planned yet</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
   </div>
 
   <!-- SortableJS -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+  <script src="src/data.js"></script>
   <script src="src/main.js"></script>
 </body>
 </html>
