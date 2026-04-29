@@ -11,10 +11,10 @@ function calculateRecipeMacros(recipe, multiplier = 1) {
 
     const ratio = (ing.amount * multiplier) / 100;
     total.calories += ingredient.macrosPer100g.calories * ratio;
-    total.protein  += ingredient.macrosPer100g.protein  * ratio;
-    total.carbs    += ingredient.macrosPer100g.carbs    * ratio;
-    total.fat      += ingredient.macrosPer100g.fat      * ratio;
-    total.price    += ingredient.pricePerUnit * ing.amount * multiplier;
+    total.protein += ingredient.macrosPer100g.protein * ratio;
+    total.carbs += ingredient.macrosPer100g.carbs * ratio;
+    total.fat += ingredient.macrosPer100g.fat * ratio;
+    total.price += ingredient.pricePerUnit * ing.amount * multiplier;
   }
 
   return total;
@@ -179,8 +179,8 @@ function renderRecipeList() {
 
 function renderMealGrid() {
   const container = document.getElementById('meal-grid');
-  const variants    = parseInt(document.getElementById('input-variants').value) || 1;
-  const mealsPerDay = parseInt(document.getElementById('input-meals').value)    || 1;
+  const variants = parseInt(document.getElementById('input-variants').value) || 1;
+  const mealsPerDay = parseInt(document.getElementById('input-meals').value) || 1;
 
   const variantLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
@@ -214,9 +214,7 @@ function renderMealGrid() {
 
       // Hydrate from gridState
       const entries = getSlotEntries(v, m);
-      if (entries.length === 0) {
-        stack.appendChild(makePlaceholder());
-      } else {
+      if (entries.length !== 0) {
         for (const entry of entries) {
           const cardEl = buildSlotCard(v, m, entry);
           if (cardEl) stack.appendChild(cardEl);
@@ -237,12 +235,14 @@ function renderMealGrid() {
       animation: 150,
       ghostClass: 'opacity-50',
       sort: true,
+      filter: 'input[type=range], button',
+      preventOnFilter: false,
       onAdd(evt) {
         const rawNode = evt.item;
         const recipeId = rawNode.dataset.recipeId;
 
         const variant = parseInt(stack.dataset.variant);
-        const meal    = parseInt(stack.dataset.meal);
+        const meal = parseInt(stack.dataset.meal);
 
         // Remove raw clone from DOM — we'll insert our own rendered card
         rawNode.remove();
@@ -265,14 +265,6 @@ function renderMealGrid() {
   updateSummary();
 }
 
-function makePlaceholder() {
-  const ph = document.createElement('div');
-  ph.className = 'slot-placeholder text-center text-base-content/30 text-xs py-4';
-  ph.textContent = 'Drop a meal here';
-  return ph;
-}
-
-
 // ============================================
 // SUMMARY CALCULATIONS
 // ============================================
@@ -285,9 +277,9 @@ function computeOccurrences(days, variants) {
 }
 
 function updateSummary() {
-  const days        = parseInt(document.getElementById('input-days').value)     || 1;
-  const variants    = parseInt(document.getElementById('input-variants').value) || 1;
-  const mealsPerDay = parseInt(document.getElementById('input-meals').value)    || 1;
+  const days = parseInt(document.getElementById('input-days').value) || 1;
+  const variants = parseInt(document.getElementById('input-variants').value) || 1;
+  const mealsPerDay = parseInt(document.getElementById('input-meals').value) || 1;
 
   const occurrences = computeOccurrences(days, variants);
 
@@ -309,35 +301,35 @@ function updateSummary() {
 
         // Add once to per-variant (one day's worth)
         perVariant[v].calories += macros.calories;
-        perVariant[v].protein  += macros.protein;
-        perVariant[v].carbs    += macros.carbs;
-        perVariant[v].fat      += macros.fat;
-        perVariant[v].price    += macros.price;
+        perVariant[v].protein += macros.protein;
+        perVariant[v].carbs += macros.carbs;
+        perVariant[v].fat += macros.fat;
+        perVariant[v].price += macros.price;
 
         // Add weekly weighted by how many times this variant appears
         weekly.calories += macros.calories * occurrences[v];
-        weekly.protein  += macros.protein  * occurrences[v];
-        weekly.carbs    += macros.carbs    * occurrences[v];
-        weekly.fat      += macros.fat      * occurrences[v];
-        weekly.price    += macros.price    * occurrences[v];
+        weekly.protein += macros.protein * occurrences[v];
+        weekly.carbs += macros.carbs * occurrences[v];
+        weekly.fat += macros.fat * occurrences[v];
+        weekly.price += macros.price * occurrences[v];
       }
     }
   }
 
   const dailyAvg = {
     calories: weekly.calories / days,
-    protein:  weekly.protein  / days,
-    carbs:    weekly.carbs    / days,
-    fat:      weekly.fat      / days,
+    protein: weekly.protein / days,
+    carbs: weekly.carbs / days,
+    fat: weekly.fat / days,
   };
 
   // Update summary panel
   document.getElementById('summary-calories').textContent = fmtNum(dailyAvg.calories) + ' kcal';
-  document.getElementById('summary-protein').textContent  = fmtNum(dailyAvg.protein)  + 'g';
-  document.getElementById('summary-carbs').textContent    = fmtNum(dailyAvg.carbs)    + 'g';
-  document.getElementById('summary-fat').textContent      = fmtNum(dailyAvg.fat)      + 'g';
-  document.getElementById('cost-per-day').textContent     = fmtNum(weekly.price / days, true);
-  document.getElementById('cost-per-week').textContent    = fmtNum(weekly.price, true);
+  document.getElementById('summary-protein').textContent = fmtNum(dailyAvg.protein) + 'g';
+  document.getElementById('summary-carbs').textContent = fmtNum(dailyAvg.carbs) + 'g';
+  document.getElementById('summary-fat').textContent = fmtNum(dailyAvg.fat) + 'g';
+  document.getElementById('cost-per-day').textContent = fmtNum(weekly.price / days, true);
+  document.getElementById('cost-per-week').textContent = fmtNum(weekly.price, true);
 
   // Variant breakdown
   const variantLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
