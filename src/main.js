@@ -3,6 +3,8 @@
 // ============================================
 
 function calculateRecipeMacros(recipe, multiplier = 1) {
+  if (!recipe) return { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
+  
   let total = { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
 
   for (const ing of recipe.ingredients) {
@@ -34,6 +36,7 @@ function fmtNum(num, isPrice = false) {
 // ============================================
 
 const STORAGE_KEY = 'bulk-meal-planner-v1';
+const CUSTOM_RECIPES_KEY = 'bulk-meal-planner-recipes';
 
 function saveToStorage() {
   const data = {
@@ -58,6 +61,50 @@ function loadFromStorage() {
 
 function clearStorage() {
   localStorage.removeItem(STORAGE_KEY);
+}
+
+// Custom recipe storage
+function loadCustomRecipes() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_RECIPES_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function saveCustomRecipes(customRecipes) {
+  localStorage.setItem(CUSTOM_RECIPES_KEY, JSON.stringify(customRecipes));
+}
+
+function getCustomRecipe(recipeId) {
+  const custom = loadCustomRecipes();
+  return custom[recipeId] || null;
+}
+
+function saveCustomRecipe(recipe) {
+  const custom = loadCustomRecipes();
+  custom[recipe.id] = recipe;
+  saveCustomRecipes(custom);
+}
+
+function deleteCustomRecipe(recipeId) {
+  const custom = loadCustomRecipes();
+  delete custom[recipeId];
+  saveCustomRecipes(custom);
+}
+
+// Get recipe merged with custom overrides
+function getRecipe(recipeId) {
+  const custom = getCustomRecipe(recipeId);
+  const base = RECIPES.find(r => r.id === recipeId);
+  return custom || base;
+}
+
+// Check if recipe has custom overrides
+function isRecipeModified(recipeId) {
+  return getCustomRecipe(recipeId) !== null;
 }
 
 
@@ -109,11 +156,12 @@ function updateEntryMultiplier(variant, meal, entryId, multiplier) {
 // ============================================
 
 function buildSlotCard(variant, meal, entry) {
-  const recipe = RECIPES.find(r => r.id === entry.recipeId);
+  const recipe = getRecipe(entry.recipeId);
   if (!recipe) return null;
 
+  const isModified = isRecipeModified(entry.recipeId);
   const card = document.createElement('div');
-  card.className = 'bg-base-200 rounded-lg p-2 text-xs space-y-1.5';
+  card.className = 'bg-base-200 rounded-lg p-2 text-xs space-y-1.5' + (isModified ? ' border-l-4 border-gray-600' : '');
   card.dataset.entryId = entry.entryId;
 
   function renderMacros() {
@@ -187,14 +235,21 @@ function renderRecipeList() {
   }
 
   for (const recipe of filtered) {
-    const macros = calculateRecipeMacros(recipe);
+    const fullRecipe = getRecipe(recipe.id);
+    const isModified = isRecipeModified(recipe.id);
+    const macros = calculateRecipeMacros(fullRecipe);
 
     const card = document.createElement('div');
-    card.className = 'card bg-base-200 cursor-grab hover:bg-base-300 transition-colors select-none';
+    card.className = 'card bg-base-200 cursor-grab hover:bg-base-300 transition-colors select-none' + (isModified ? ' border-l-4 border-gray-600' : '');
     card.dataset.recipeId = recipe.id;
     card.innerHTML = `
-      <div class="card-body p-3">
-        <h3 class="card-title text-sm">${recipe.name}</h3>
+      <div class="card-body p-3 relative">
+        <button class="btn btn-ghost btn-xs absolute top-2 right-2 edit-recipe-btn" title="Edit Recipe">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+        <h3 class="card-title text-sm">${recipe.name}${isModified ? '<span class="ml-1 badge badge-xs badge-warning">Modified</span>' : ''}</h3>
         <div class="text-xs text-base-content/70 space-y-1">
           <div class="flex justify-between">
             <span>${fmtNum(macros.calories)} kcal</span>
@@ -208,6 +263,13 @@ function renderRecipeList() {
         </div>
       </div>
     `;
+    
+    // Add edit button listener
+    card.querySelector('.edit-recipe-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditModal(recipe.id);
+    });
+    
     container.appendChild(card);
   }
 
@@ -338,7 +400,7 @@ function updateSummary() {
     for (let m = 0; m < mealsPerDay; m++) {
       const entries = gridState.get(stateKey(v, m)) || [];
       for (const entry of entries) {
-        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        const recipe = getRecipe(entry.recipeId);
         if (!recipe) continue;
         const macros = calculateRecipeMacros(recipe, entry.multiplier);
 
@@ -443,7 +505,7 @@ function generatePrintView() {
     for (let m = 0; m < mealsPerDay; m++) {
       const entries = gridState.get(stateKey(v, m)) || [];
       for (const entry of entries) {
-        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        const recipe = getRecipe(entry.recipeId);
         if (!recipe) continue;
         const totalMultiplier = entry.multiplier * occurrences[v];
 
@@ -511,7 +573,7 @@ function generatePrintView() {
     for (let m = 0; m < mealsPerDay; m++) {
       const entries = gridState.get(stateKey(v, m)) || [];
       for (const entry of entries) {
-        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        const recipe = getRecipe(entry.recipeId);
         if (!recipe) continue;
         const macros = calculateRecipeMacros(recipe, entry.multiplier);
         vd.calories += macros.calories;
@@ -590,7 +652,7 @@ function generatePrintView() {
         return labelRow + `<tr><td colspan="6" style="color:#aaa;padding-bottom:8px;">—</td></tr>`;
       }
       const foodRows = entries.map(entry => {
-        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        const recipe = getRecipe(entry.recipeId);
         if (!recipe) return '';
         const macros = calculateRecipeMacros(recipe, entry.multiplier);
         const totalWeight = Math.round(recipe.servingSize * entry.multiplier);
@@ -620,7 +682,7 @@ function generatePrintView() {
     for (let m = 0; m < mealsPerDay; m++) {
       const entries = gridState.get(stateKey(v, m)) || [];
       for (const entry of entries) {
-        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        const recipe = getRecipe(entry.recipeId);
         if (!recipe) continue;
         const macros = calculateRecipeMacros(recipe, entry.multiplier);
         dayTotals.calories += macros.calories;
@@ -662,7 +724,7 @@ function generatePrintView() {
 
   // Section 4: Recipe prep guide
   const recipeGuideBlocks = [...recipeTotals.entries()].map(([recipeId, rt]) => {
-    const recipe = RECIPES.find(r => r.id === recipeId);
+    const recipe = getRecipe(recipeId);
     if (!recipe) return '';
     const { totalMultiplier, portions, perPortionMultipliers } = rt;
 
@@ -755,6 +817,184 @@ function generatePrintView() {
 }
 
 document.querySelector('.btn-primary').addEventListener('click', generatePrintView);
+
+
+// ============================================
+// EDIT RECIPE MODAL
+// ============================================
+
+let editingRecipeId = null;
+let editingIngredients = []; // { id, amount, originalAmount }
+
+function openEditModal(recipeId) {
+  const baseRecipe = RECIPES.find(r => r.id === recipeId);
+  if (!baseRecipe) return;
+  
+  const currentRecipe = getRecipe(recipeId);
+  editingRecipeId = recipeId;
+  
+  // Clone ingredients, storing original amount for slider range calculation
+  editingIngredients = currentRecipe.ingredients.map(ing => ({
+    id: ing.id,
+    amount: ing.amount,
+    originalAmount: baseRecipe.ingredients.find(bi => bi.id === ing.id)?.amount || ing.amount
+  }));
+  
+  const modal = document.getElementById('edit-modal');
+  document.getElementById('edit-recipe-name').textContent = currentRecipe.name;
+  document.getElementById('edit-recipe-desc').textContent = `Original serving size: ${currentRecipe.servingSize}g`;
+  
+  const modified = isRecipeModified(recipeId);
+  document.getElementById('edit-modified-badge').classList.toggle('hidden', !modified);
+  document.getElementById('edit-reset-btn').classList.toggle('hidden', !modified);
+  
+  renderEditIngredients();
+  updateEditStats();
+  modal.showModal();
+}
+
+function renderEditIngredients() {
+  const container = document.getElementById('edit-ingredients');
+  container.innerHTML = '';
+  
+  for (const ing of editingIngredients) {
+    const ingredient = INGREDIENTS[ing.id];
+    if (!ingredient) continue;
+    
+    const maxAmount = ing.originalAmount * 2;
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 p-2 bg-base-200 rounded-lg';
+    row.innerHTML = `
+      <div class="flex-1 min-w-0">
+        <div class="font-medium text-sm truncate">${ingredient.name}</div>
+        <div class="flex items-center gap-2 mt-1">
+          <input 
+            type="range" 
+            class="range range-xs range-primary flex-1 ingredient-slider"
+            min="0" 
+            max="${maxAmount}" 
+            step="1"
+            value="${ing.amount}"
+            data-ingredient-id="${ing.id}"
+          >
+          <input 
+            type="number" 
+            class="input input-bordered input-xs w-20 text-center ingredient-input"
+            min="0"
+            max="${maxAmount}"
+            step="1"
+            value="${Math.round(ing.amount)}"
+            data-ingredient-id="${ing.id}"
+          >
+          <span class="text-xs text-base-content/50 w-8">${ingredient.unit}</span>
+        </div>
+      </div>
+    `;
+    
+    const slider = row.querySelector('.ingredient-slider');
+    const input = row.querySelector('.ingredient-input');
+    
+    // Slider -> input sync
+    slider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      input.value = Math.round(val);
+      const ingData = editingIngredients.find(i => i.id === ing.id);
+      if (ingData) ingData.amount = val;
+      updateEditStats();
+      onIngredientChange();
+    });
+    
+    // Input -> slider sync
+    input.addEventListener('input', (e) => {
+      let val = parseFloat(e.target.value) || 0;
+      val = Math.max(0, Math.min(maxAmount, val));
+      slider.value = val;
+      const ingData = editingIngredients.find(i => i.id === ing.id);
+      if (ingData) ingData.amount = val;
+      updateEditStats();
+      onIngredientChange();
+    });
+    
+    container.appendChild(row);
+  }
+}
+
+function updateEditStats() {
+  // Build temporary recipe object for calculation
+  const tempRecipe = {
+    id: editingRecipeId,
+    ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount })),
+    servingSize: 0 // will be calculated from ingredients
+  };
+  
+  // Calculate total weight from ingredients
+  let totalWeight = 0;
+  for (const ing of editingIngredients) {
+    const ingredient = INGREDIENTS[ing.id];
+    if (ingredient) {
+      totalWeight += ing.amount;
+    }
+  }
+  tempRecipe.servingSize = totalWeight;
+  
+  const macros = calculateRecipeMacros(tempRecipe);
+  
+  document.getElementById('edit-cals').textContent = fmtNum(macros.calories);
+  document.getElementById('edit-protein').textContent = fmtNum(macros.protein) + 'g';
+  document.getElementById('edit-carbs').textContent = fmtNum(macros.carbs) + 'g';
+  document.getElementById('edit-fat').textContent = fmtNum(macros.fat) + 'g';
+  document.getElementById('edit-weight').textContent = Math.round(totalWeight) + 'g';
+  document.getElementById('edit-price').textContent = fmtNum(macros.price, true);
+}
+
+function saveEditedRecipe() {
+  const baseRecipe = RECIPES.find(r => r.id === editingRecipeId);
+  if (!baseRecipe) return;
+  
+  // Calculate new serving size from ingredients
+  let totalWeight = 0;
+  for (const ing of editingIngredients) {
+    totalWeight += ing.amount;
+  }
+  
+  const editedRecipe = {
+    ...baseRecipe,
+    ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount })),
+    servingSize: Math.round(totalWeight)
+  };
+  
+  saveCustomRecipe(editedRecipe);
+  
+  // Refresh UI to show changes across the app
+  renderRecipeList();
+  renderMealGrid();
+  updateSummary();
+}
+
+function resetRecipeToDefault() {
+  if (!editingRecipeId) return;
+  if (!confirm('Revert this recipe to its default ingredients?')) return;
+  
+  deleteCustomRecipe(editingRecipeId);
+  
+  // Refresh UI
+  renderRecipeList();
+  renderMealGrid();
+  updateSummary();
+  
+  document.getElementById('edit-modal').close();
+}
+
+// Auto-save on ingredient change
+function onIngredientChange() {
+  saveEditedRecipe();
+}
+
+// Modal event listeners
+document.getElementById('edit-reset-btn').addEventListener('click', resetRecipeToDefault);
+document.getElementById('edit-cancel-btn').addEventListener('click', () => {
+  document.getElementById('edit-modal').close();
+});
 
 
 // ============================================
