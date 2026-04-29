@@ -60,10 +60,12 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 - `renderMealGrid()` → generates variant × meal slots, reads from DOM inputs
 - `updateSummary()` → updates right sidebar totals (TODO: wire to actual slot data)
 
-### SortableJS Groups
-- Left sidebar: `group: 'recipes'` (draggable source, not sortable)
-- Main grid: `group: 'recipes'` (drop target, sortable)
-- Cards have `data-recipe-id` attribute; slots have `data-variant` + `data-meal`
+### SortableJS Groups (as of 2026-04-29)
+- Left sidebar: `group: { name: 'recipes', pull: 'clone', put: false }` — clones on drag out, never accepts drops
+- Main grid stacks: `group: { name: 'recipes', pull: true, put: true }` — full cross-list drag, items deletable by spill
+- Sidebar uses `onEnd` to delete cloned items dropped outside a valid `.recipe-stack`
+- Stacks use `removeOnSpill: true` — dropping outside any list removes the card (do NOT use `onEnd` for this; SortableJS reverts `evt.to` to source on invalid drops, making manual checks unreliable)
+- Cards have `data-recipe-id` attribute; stacks have `data-variant` + `data-meal`
 
 ### Input Controls
 - `input-days`, `input-meals`, `input-variants` — changing any triggers `renderMealGrid()`
