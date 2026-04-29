@@ -3,6 +3,13 @@
 ## [Unreleased] — 2026-04-29
 
 ### Added
+- **Daily Meal Schedule print page** — the print view now includes a "Daily Meal Schedule" section (on its own page) showing every day variant with meals separated by labeled dividers and a subtler border. Each food item lists its macros, and a Day Total row summarises the full day.
+- **Occurrence checkboxes** — next to each day variant heading, printable checkbox squares (one per scheduled occurrence) let you tick off completions on paper.
+
+### Changed
+- Meal separators and borders in the Daily Meal Schedule use a lighter `#aaa` tone instead of stark black, reducing visual weight by ~50%.
+
+### Added
 - **localStorage persistence** — the meal grid, multipliers, and input values (days, meals/day, variants) are automatically saved to `localStorage` and restored on page reload. No data is lost between browser restarts.
 - **Clear button** — a "Clear" button in the navbar removes all meals from the grid and wipes persisted data after a confirmation prompt.
 

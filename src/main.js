@@ -580,7 +580,77 @@ function generatePrintView() {
       <p class="total">Total: ${fmtNum(weekly.price, true)}</p>
     </section>`;
 
-  // Section 3: Recipe prep guide
+  // Section 3: Daily meal schedule
+  const dailyScheduleBlocks = Array.from({ length: variants }, (_, v) => {
+    const mealBlocks = Array.from({ length: mealsPerDay }, (_, m) => {
+      const entries = gridState.get(stateKey(v, m)) || [];
+      const borderStyle = m === 0 ? '' : 'border-top:2px solid #aaa;';
+      const labelRow = `<tr><td colspan="6" style="${borderStyle}padding-top:10px;padding-bottom:2px;font-weight:bold;font-size:13px;color:#888;">Meal ${m + 1}</td></tr>`;
+      if (entries.length === 0) {
+        return labelRow + `<tr><td colspan="6" style="color:#aaa;padding-bottom:8px;">—</td></tr>`;
+      }
+      const foodRows = entries.map(entry => {
+        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        if (!recipe) return '';
+        const macros = calculateRecipeMacros(recipe, entry.multiplier);
+        return `
+          <tr>
+            <td style="padding-bottom:6px;">${recipe.name}${entry.multiplier !== 1 ? ` <span style="color:#888">(${entry.multiplier.toFixed(1)}×)</span>` : ''}</td>
+            <td style="padding-bottom:6px;">${fmtNum(macros.calories)} kcal</td>
+            <td style="padding-bottom:6px;">${fmtNum(macros.protein)}g</td>
+            <td style="padding-bottom:6px;">${fmtNum(macros.carbs)}g</td>
+            <td style="padding-bottom:6px;">${fmtNum(macros.fat)}g</td>
+          </tr>`;
+      }).join('');
+      return labelRow + foodRows;
+    }).join('');
+
+    // Day totals
+    const dayTotals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    for (let m = 0; m < mealsPerDay; m++) {
+      const entries = gridState.get(stateKey(v, m)) || [];
+      for (const entry of entries) {
+        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        if (!recipe) continue;
+        const macros = calculateRecipeMacros(recipe, entry.multiplier);
+        dayTotals.calories += macros.calories;
+        dayTotals.protein += macros.protein;
+        dayTotals.carbs += macros.carbs;
+        dayTotals.fat += macros.fat;
+      }
+    }
+
+    const checkboxes = Array.from({ length: occurrences[v] }, () =>
+      `<span style="display:inline-block;width:18px;height:18px;border:2px solid #aaa;border-radius:3px;margin-right:5px;vertical-align:middle;"></span>`
+    ).join('');
+
+    return `
+      <div class="recipe-block">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <span>Day ${variantLabels[v] || v + 1}</span>
+          <span style="font-weight:normal;font-size:13px;color:#555;display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${checkboxes}</span>
+        </h3>
+        <table>
+          <tr><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th></tr>
+          ${mealBlocks}
+          <tr style="font-weight:bold;border-top:2px solid #aaa;">
+            <td>Day Total</td>
+            <td>${fmtNum(dayTotals.calories)} kcal</td>
+            <td>${fmtNum(dayTotals.protein)}g</td>
+            <td>${fmtNum(dayTotals.carbs)}g</td>
+            <td>${fmtNum(dayTotals.fat)}g</td>
+          </tr>
+        </table>
+      </div>`;
+  }).join('');
+
+  const dailyScheduleSection = `
+    <section class="section page-break-before">
+      <h2>Daily Meal Schedule</h2>
+      ${dailyScheduleBlocks || '<p>No meals planned yet.</p>'}
+    </section>`;
+
+  // Section 4: Recipe prep guide
   const recipeGuideBlocks = [...recipeTotals.entries()].map(([recipeId, rt]) => {
     const recipe = RECIPES.find(r => r.id === recipeId);
     if (!recipe) return '';
@@ -647,11 +717,13 @@ function generatePrintView() {
       body { margin: 20px; }
       .section { page-break-inside: avoid; }
       .recipe-block { page-break-inside: avoid; }
+      .page-break-before { page-break-before: always; }
     }
   </style>
 </head>
 <body>
   ${summarySection}
+  ${dailyScheduleSection}
   ${shoppingSection}
   ${recipeSection}
 </body>
