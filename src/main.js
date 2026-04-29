@@ -561,7 +561,7 @@ function generatePrintView() {
 
   // Section 2: Shopping list
   const shoppingRows = [...shoppingMap.values()]
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => b.totalAmount - a.totalAmount)
     .map(item => `
       <tr>
         <td>${item.name}</td>
@@ -593,9 +593,19 @@ function generatePrintView() {
         const recipe = RECIPES.find(r => r.id === entry.recipeId);
         if (!recipe) return '';
         const macros = calculateRecipeMacros(recipe, entry.multiplier);
+        const totalWeight = Math.round(recipe.servingSize * entry.multiplier);
+        const unit = recipe.ingredients[0]?.id ? INGREDIENTS[recipe.ingredients[0].id]?.unit || 'g' : 'g';
+        let portionLabel;
+        if (recipe.displayUnit === 'weight') {
+          portionLabel = `<span style="color:#555">(${totalWeight}${unit})</span>`;
+        } else if (entry.multiplier !== 1) {
+          portionLabel = `<span style="color:#888">(${entry.multiplier.toFixed(1)}×)</span>`;
+        } else {
+          portionLabel = '';
+        }
         return `
           <tr>
-            <td style="padding-bottom:6px;">${recipe.name}${entry.multiplier !== 1 ? ` <span style="color:#888">(${entry.multiplier.toFixed(1)}×)</span>` : ''}</td>
+            <td style="padding-bottom:6px;">${recipe.name} ${portionLabel}</td>
             <td style="padding-bottom:6px;">${fmtNum(macros.calories)} kcal</td>
             <td style="padding-bottom:6px;">${fmtNum(macros.protein)}g</td>
             <td style="padding-bottom:6px;">${fmtNum(macros.carbs)}g</td>
@@ -676,9 +686,17 @@ function generatePrintView() {
       return `<tr><td>${ingredient.name}</td><td>${totalAmount} ${ingredient.unit}</td><td style="color:#555">${perPortionCell}</td></tr>`;
     }).join('');
 
+    const totalWeight = Math.round(recipe.servingSize * totalMultiplier);
+    const weightUnit = INGREDIENTS[recipe.ingredients[0]?.id]?.unit || 'g';
+    let portionInfo;
+    if (recipe.displayUnit === 'weight') {
+      portionInfo = `${totalWeight}${weightUnit} total &nbsp;·&nbsp; ${portions}× Portions`;
+    } else {
+      portionInfo = `${fmtNum(totalMultiplier, false)}× Servings &nbsp;·&nbsp; ${portions}× Portions`;
+    }
     return `
       <div class="recipe-block">
-        <h3>${recipe.name} <span style="font-weight:normal;color:#555">(${fmtNum(totalMultiplier, false)}× Servings &nbsp;·&nbsp; ${portions}× Portions)</span></h3>
+        <h3>${recipe.name} <span style="font-weight:normal;color:#555">(${portionInfo})</span></h3>
         <table>
           <tr><th>Ingredient</th><th>Total Amount</th><th>Per Portion</th></tr>
           ${ingRows}

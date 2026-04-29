@@ -305,6 +305,7 @@ const RECIPES = [
     category: "drink",
     name: "Whole Milk",
     servingSize: 300,
+    displayUnit: "weight",
     ingredients: [
       { id: "whole-milk", amount: 300 }
     ],
@@ -315,6 +316,7 @@ const RECIPES = [
     category: "drink",
     name: "Orange Juice",
     servingSize: 250,
+    displayUnit: "weight",
     ingredients: [
       { id: "orange-juice", amount: 250 }
     ],
@@ -325,6 +327,7 @@ const RECIPES = [
     category: "drink",
     name: "Protein Shake",
     servingSize: 270,
+    displayUnit: "weight",
     ingredients: [
       { id: "whey-protein-powder", amount: 30 },
       { id: "whole-milk", amount: 240 }
