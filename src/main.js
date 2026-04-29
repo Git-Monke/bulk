@@ -74,11 +74,20 @@ function renderRecipeList() {
     container.appendChild(card);
   }
   
-  // Make recipe cards draggable
+  // Make recipe cards draggable (source only, not sortable within sidebar)
   new Sortable(container, {
     group: 'recipes',
     sort: false,
-    ghostClass: 'opacity-50'
+    animation: 150,
+    ghostClass: 'opacity-50',
+    // Clone items when dragging from sidebar (so original stays)
+    pull: 'clone',
+    clone: function(original) {
+      const clone = original.cloneNode(true);
+      clone.classList.add('bg-base-100');
+      clone.classList.remove('bg-base-200', 'hover:bg-base-300');
+      return clone;
+    }
   });
 }
 
@@ -90,36 +99,61 @@ function renderMealGrid() {
   const variants = parseInt(document.getElementById('input-variants').value) || 1;
   const mealsPerDay = parseInt(document.getElementById('input-meals').value) || 1;
   
-  // Set grid template
-  container.style.gridTemplateColumns = `repeat(${variants}, minmax(200px, 1fr))`;
-  container.style.gridTemplateRows = `repeat(${mealsPerDay}, minmax(180px, auto))`;
+  // Flex layout: columns = variants, each stretched to fill available space
+  container.className = 'flex gap-4 p-1 h-full';
   container.innerHTML = '';
   
-  for (let meal = 0; meal < mealsPerDay; meal++) {
-    for (let variant = 0; variant < variants; variant++) {
+  for (let variant = 0; variant < variants; variant++) {
+    // Create a variant column that stretches
+    const dayColumn = document.createElement('div');
+    dayColumn.className = 'flex flex-col gap-4 flex-1 min-w-[200px]';
+    dayColumn.dataset.day = variant;
+    
+    // Meal slots for this day (each slot also stretches)
+    for (let meal = 0; meal < mealsPerDay; meal++) {
       const slot = document.createElement('div');
-      slot.className = 'card bg-base-100 border-2 border-dashed border-base-300 hover:border-primary/50 transition-colors';
+      slot.className = 'card bg-base-100 border-2 border-dashed border-base-300 hover:border-primary/50 transition-colors flex flex-col flex-1';
       slot.dataset.variant = variant;
       slot.dataset.meal = meal;
-      slot.innerHTML = `
-        <div class="card-body p-3">
-          <div class="text-xs text-base-content/40 uppercase tracking-wide mb-2">
-            Day ${variant + 1} · Meal ${meal + 1}
-          </div>
-          <div class="flex items-center justify-center h-24 text-base-content/30 text-sm">
-            Drop a meal here
-          </div>
-        </div>
-      `;
-      container.appendChild(slot);
+      
+      // Header with meal label
+      const header = document.createElement('div');
+      header.className = 'text-xs text-base-content/40 uppercase tracking-wide p-2 border-b border-base-200 shrink-0';
+      header.textContent = `Meal ${meal + 1}`;
+      slot.appendChild(header);
+      
+      // Inner container for stacking recipes (stretches to fill remaining space)
+      const recipeStack = document.createElement('div');
+      recipeStack.className = 'recipe-stack flex-1 p-2 space-y-2 overflow-y-auto';
+      recipeStack.dataset.variant = variant;
+      recipeStack.dataset.meal = meal;
+      
+      // Empty state text
+      const emptyState = document.createElement('div');
+      emptyState.className = 'empty-state flex items-center justify-center h-full text-base-content/30 text-xs';
+      emptyState.textContent = 'Drop recipes';
+      recipeStack.appendChild(emptyState);
+      
+      slot.appendChild(recipeStack);
+      dayColumn.appendChild(slot);
     }
+    
+    container.appendChild(dayColumn);
   }
   
-  // Make slots droppable
-  new Sortable(container, {
-    group: 'recipes',
-    animation: 150,
-    ghostClass: 'opacity-50'
+  // Make recipe stacks sortable (not the slots themselves)
+  document.querySelectorAll('.recipe-stack').forEach(stack => {
+    new Sortable(stack, {
+      group: 'recipes',
+      animation: 150,
+      ghostClass: 'opacity-50',
+      sort: true,
+      // Remove empty state when items are added
+      onAdd: function(evt) {
+        const emptyState = evt.target.querySelector('.empty-state');
+        if (emptyState) emptyState.remove();
+      }
+    });
   });
 }
 
