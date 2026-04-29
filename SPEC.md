@@ -46,9 +46,9 @@ The variant grid repeats across the number of days. For example: 7 days with 3 v
 
 ### Main Grid (center)
 - Grid dimensions: **variants (columns) × meals per day (rows)**
-- Each cell is a droppable slot
+- Each cell is a droppable slot that can hold **multiple stacked recipe cards**
 - Empty slots show a placeholder (e.g. "Drop a meal here")
-- Filled slots show a meal card (see below)
+- Filled slots show one meal card per dropped recipe, stacked vertically
 
 ### Totals Panel (right or bottom)
 - Aggregated daily macros across all variant slots
@@ -58,10 +58,10 @@ The variant grid repeats across the number of days. For example: 7 days with 3 v
 
 ## Meal Slot Card
 
-When a recipe is dropped into a slot, the card shows:
+When a recipe is dropped into a slot, a card is added to that slot's stack showing:
 
 - Recipe name
-- Serving size slider: **0.5x to 3x** (default 1x), step 0.5
+- Serving size slider: **0.1x to 4x** (default 1x), step 0.1
 - All values recalculate live as the slider moves:
   - Calories
   - Protein (g)
@@ -69,7 +69,9 @@ When a recipe is dropped into a slot, the card shows:
   - Fat (g)
   - Total weight (g)
   - Price for this serving
-- A remove button to clear the slot
+- A remove button to remove this card from the stack
+
+Multiple recipes can be stacked in a single slot. Each has its own independent slider.
 
 **Number formatting:** all values displayed to 2 significant figures.
 - 321.432 kcal → 320 kcal
@@ -127,7 +129,7 @@ const RECIPES = [
 ]
 ```
 
-All ingredient amounts and derived macros scale linearly with the serving multiplier, which goes from 0.1 to 4. 
+All ingredient amounts and derived macros scale linearly with the serving multiplier, which goes from 0.1 to 4.
 
 All numbers are rounded to 2 significant digits except for cost which is rounded to the nearest cent.
 
@@ -141,6 +143,8 @@ The variant grid repeats across the number of days. The app calculates how many 
 occurrences[variantIndex] = Math.ceil(days / variants)
 // with adjustment for the last variant if days % variants !== 0
 ```
+
+When the grid is reconfigured (days/variants/meals changed), existing slot data is **always preserved** — slots outside the current grid bounds are kept in memory but excluded from calculations. This prevents accidental data loss.
 
 For each unique recipe used anywhere in the grid, the app aggregates:
 - Total servings needed (sum of slot multipliers × occurrences)

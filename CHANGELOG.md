@@ -1,0 +1,16 @@
+# Changelog
+
+## [Unreleased] — 2026-04-29
+
+### Added
+- **gridState model** — persistent in-memory state (`Map`) tracking all dropped recipes across every slot, keyed by `"variant-meal"`. State is never cleared on grid resize; out-of-bounds slots are excluded from calculations only.
+- **Slot card rendering** — dropped recipes now render as proper cards with recipe name, scaled macros (calories, protein, carbs, fat, total weight, price), a serving size slider (0.1×–4×, step 0.1), and a remove button.
+- **Live recalculation** — slider adjustments instantly update the card's macro display and the summary panel.
+- **`updateSummary()` implementation** — daily average macros and cost, weekly total cost, and per-variant breakdown are now fully calculated from gridState. Uses correct occurrences weighting (`days % variants` logic).
+- **Variant breakdown panel** — right sidebar now shows per-day-variant macro and cost totals with occurrence counts.
+- **Grid hydration on rebuild** — changing meals/variants re-renders the grid while restoring all existing cards from gridState.
+- **Day variant labels** — grid columns now labeled "Day A", "Day B", etc.
+- `input-days` now live-updates summary without rebuilding the grid.
+
+### Changed
+- SPEC updated: slots support multiple stacked recipes (not one per slot), slider range is 0.1–4×, grid resize preserves all data.
