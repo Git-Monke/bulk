@@ -3,6 +3,12 @@
 ## [Unreleased] — 2026-04-29
 
 ### Added
+- **Print view (`generatePrintView`)** — the Print button now opens a clean, human-readable document in a new tab instead of printing the raw app UI. The document contains three sections:
+  1. **Summary** — plan config, daily average macros, cost per day/week, and a per-variant breakdown table.
+  2. **Shopping list** — all ingredients aggregated across the full plan (total quantity + estimated cost per ingredient, alphabetically sorted, with grand total).
+  3. **Meal prep guide** — one block per unique recipe with total scaled ingredient amounts to cook for the whole week plus the recipe’s prep notes.
+
+### Added
 - **gridState model** — persistent in-memory state (`Map`) tracking all dropped recipes across every slot, keyed by `"variant-meal"`. State is never cleared on grid resize; out-of-bounds slots are excluded from calculations only.
 - **Slot card rendering** — dropped recipes now render as proper cards with recipe name, scaled macros (calories, protein, carbs, fat, total weight, price), a serving size slider (0.1×–4×, step 0.1), and a remove button.
 - **Live recalculation** — slider adjustments instantly update the card's macro display and the summary panel.

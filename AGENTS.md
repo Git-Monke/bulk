@@ -97,7 +97,16 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 ### Input Wiring
 - `input-days` — fires `updateSummary()` only (no grid rebuild needed)
 - `input-meals`, `input-variants` — fire `renderMealGrid()` which calls `updateSummary()` at the end
-- Print button — calls `window.print()`
+- Print button — calls `generatePrintView()`
+
+### Print View (`generatePrintView`)
+Opens a new browser window with a clean, print-ready HTML document (no app chrome). The document has three sections:
+
+1. **Summary** — plan config (days/variants/meals), daily average macros (calories/protein/carbs/fat), cost per day and per week, and a per-variant breakdown table showing each day type's macros, cost, and how many times it occurs.
+2. **Shopping List** — all ingredients across the entire plan aggregated into a single table (ingredient name, total quantity with unit, estimated cost), sorted alphabetically, with a grand total at the bottom. Quantities are rounded to the nearest whole number.
+3. **Meal Prep Guide** — one block per unique recipe used anywhere in the plan, showing the total scaled ingredient amounts to cook for the whole week (sum of `multiplier × occurrences` across all slots containing that recipe), and the recipe's `prepNotes`.
+
+The function reuses `computeOccurrences()`, `calculateRecipeMacros()`, and `fmtNum()`. It iterates `gridState` respecting the same in-bounds logic as `updateSummary()`. The new window calls `window.print()` after writing the document so the browser print dialog fires automatically.
 
 ### Number Formatting (`fmtNum`)
 - `fmtNum(num)` — 2 significant figures (e.g. 321 → "320", 1.5 → "1.5")
@@ -122,7 +131,6 @@ No other changes needed — recipes appear in the sidebar automatically.
 ## Known Gaps / TODO
 
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
-- **Print/export not implemented** — `window.print()` is wired but there's no print CSS or export sections yet
+- **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **No localStorage** — all state is lost on page refresh (out of scope for v1 per SPEC)
 - **Mobile not optimized** — desktop-first per SPEC
-- **Grocery list / Meal Prep Guide sections** not yet built (needed for print view per SPEC)

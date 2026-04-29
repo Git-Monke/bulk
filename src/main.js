@@ -375,9 +375,229 @@ document.getElementById('input-variants').addEventListener('input', () => {
   renderMealGrid();
 });
 
-document.querySelector('.btn-primary').addEventListener('click', () => {
-  window.print();
-});
+// ============================================
+// PRINT VIEW
+// ============================================
+
+function generatePrintView() {
+  const days = parseInt(document.getElementById('input-days').value) || 1;
+  const variants = parseInt(document.getElementById('input-variants').value) || 1;
+  const mealsPerDay = parseInt(document.getElementById('input-meals').value) || 1;
+  const variantLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  const occurrences = computeOccurrences(days, variants);
+
+  // --- Aggregate shopping list: ingredientId -> { name, unit, totalAmount, totalCost } ---
+  const shoppingMap = new Map();
+  // --- Aggregate per-recipe totals: recipeId -> totalMultiplier (sum across all slots × occurrences) ---
+  const recipeTotals = new Map();
+
+  for (let v = 0; v < variants; v++) {
+    for (let m = 0; m < mealsPerDay; m++) {
+      const entries = gridState.get(stateKey(v, m)) || [];
+      for (const entry of entries) {
+        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        if (!recipe) continue;
+        const totalMultiplier = entry.multiplier * occurrences[v];
+
+        // Accumulate recipe totals
+        recipeTotals.set(
+          entry.recipeId,
+          (recipeTotals.get(entry.recipeId) || 0) + totalMultiplier
+        );
+
+        // Accumulate ingredient totals
+        for (const ing of recipe.ingredients) {
+          const ingredient = INGREDIENTS[ing.id];
+          if (!ingredient) continue;
+          const totalAmount = ing.amount * totalMultiplier;
+          const totalCost = ingredient.pricePerUnit * totalAmount;
+          if (shoppingMap.has(ing.id)) {
+            const entry = shoppingMap.get(ing.id);
+            entry.totalAmount += totalAmount;
+            entry.totalCost += totalCost;
+          } else {
+            shoppingMap.set(ing.id, {
+              name: ingredient.name,
+              unit: ingredient.unit,
+              totalAmount,
+              totalCost,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // --- Compute weekly totals for summary ---
+  let weekly = { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
+  for (let v = 0; v < variants; v++) {
+    for (let m = 0; m < mealsPerDay; m++) {
+      const entries = gridState.get(stateKey(v, m)) || [];
+      for (const entry of entries) {
+        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        if (!recipe) continue;
+        const macros = calculateRecipeMacros(recipe, entry.multiplier);
+        weekly.calories += macros.calories * occurrences[v];
+        weekly.protein += macros.protein * occurrences[v];
+        weekly.carbs += macros.carbs * occurrences[v];
+        weekly.fat += macros.fat * occurrences[v];
+        weekly.price += macros.price * occurrences[v];
+      }
+    }
+  }
+  const dailyAvg = {
+    calories: weekly.calories / days,
+    protein: weekly.protein / days,
+    carbs: weekly.carbs / days,
+    fat: weekly.fat / days,
+  };
+
+  // --- Build HTML sections ---
+
+  // Section 1: Summary
+  const variantRows = Array.from({ length: variants }, (_, v) => {
+    const vd = { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
+    for (let m = 0; m < mealsPerDay; m++) {
+      const entries = gridState.get(stateKey(v, m)) || [];
+      for (const entry of entries) {
+        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        if (!recipe) continue;
+        const macros = calculateRecipeMacros(recipe, entry.multiplier);
+        vd.calories += macros.calories;
+        vd.protein += macros.protein;
+        vd.carbs += macros.carbs;
+        vd.fat += macros.fat;
+        vd.price += macros.price;
+      }
+    }
+    return `
+      <tr>
+        <td>Day ${variantLabels[v] || v + 1} <span style="color:#888">(×${occurrences[v]})</span></td>
+        <td>${fmtNum(vd.calories)} kcal</td>
+        <td>${fmtNum(vd.protein)}g</td>
+        <td>${fmtNum(vd.carbs)}g</td>
+        <td>${fmtNum(vd.fat)}g</td>
+        <td>${fmtNum(vd.price, true)}</td>
+      </tr>`;
+  }).join('');
+
+  const summarySection = `
+    <section class="section">
+      <h1>Meal Prep Plan</h1>
+      <p class="meta">${days} days &nbsp;·&nbsp; ${variants} variant${variants !== 1 ? 's' : ''} &nbsp;·&nbsp; ${mealsPerDay} meal${mealsPerDay !== 1 ? 's' : ''}/day</p>
+
+      <h2>Daily Averages</h2>
+      <table>
+        <tr>
+          <th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Cost/day</th><th>Cost/week</th>
+        </tr>
+        <tr>
+          <td>${fmtNum(dailyAvg.calories)} kcal</td>
+          <td>${fmtNum(dailyAvg.protein)}g</td>
+          <td>${fmtNum(dailyAvg.carbs)}g</td>
+          <td>${fmtNum(dailyAvg.fat)}g</td>
+          <td>${fmtNum(weekly.price / days, true)}</td>
+          <td>${fmtNum(weekly.price, true)}</td>
+        </tr>
+      </table>
+
+      <h2>Day Breakdown</h2>
+      <table>
+        <tr><th>Variant</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Cost</th></tr>
+        ${variantRows}
+      </table>
+    </section>`;
+
+  // Section 2: Shopping list
+  const shoppingRows = [...shoppingMap.values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(item => `
+      <tr>
+        <td>${item.name}</td>
+        <td>${Math.round(item.totalAmount)} ${item.unit}</td>
+        <td>${fmtNum(item.totalCost, true)}</td>
+      </tr>`)
+    .join('');
+
+  const shoppingSection = `
+    <section class="section">
+      <h2>Shopping List</h2>
+      <table>
+        <tr><th>Ingredient</th><th>Amount</th><th>Est. Cost</th></tr>
+        ${shoppingRows || '<tr><td colspan="3">No ingredients — add meals to the plan first.</td></tr>'}
+      </table>
+      <p class="total">Total: ${fmtNum(weekly.price, true)}</p>
+    </section>`;
+
+  // Section 3: Recipe prep guide
+  const recipeGuideBlocks = [...recipeTotals.entries()].map(([recipeId, totalMult]) => {
+    const recipe = RECIPES.find(r => r.id === recipeId);
+    if (!recipe) return '';
+    const ingRows = recipe.ingredients.map(ing => {
+      const ingredient = INGREDIENTS[ing.id];
+      if (!ingredient) return '';
+      const totalAmount = Math.round(ing.amount * totalMult);
+      return `<tr><td>${ingredient.name}</td><td>${totalAmount} ${ingredient.unit}</td></tr>`;
+    }).join('');
+    return `
+      <div class="recipe-block">
+        <h3>${recipe.name} <span style="font-weight:normal;color:#555">(${fmtNum(totalMult, false)}× total)</span></h3>
+        <table>
+          <tr><th>Ingredient</th><th>Total Amount</th></tr>
+          ${ingRows}
+        </table>
+        ${recipe.prepNotes ? `<p class="prep-notes"><strong>Prep:</strong> ${recipe.prepNotes}</p>` : ''}
+      </div>`;
+  }).join('');
+
+  const recipeSection = `
+    <section class="section">
+      <h2>Meal Prep Guide</h2>
+      ${recipeGuideBlocks || '<p>No recipes used.</p>'}
+    </section>`;
+
+  // --- Compose full document ---
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Meal Prep Plan</title>
+  <style>
+    body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; color: #111; font-size: 14px; }
+    h1 { font-size: 24px; margin-bottom: 4px; }
+    h2 { font-size: 18px; margin-top: 32px; margin-bottom: 8px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    h3 { font-size: 15px; margin-top: 20px; margin-bottom: 6px; }
+    .meta { color: #555; margin-bottom: 16px; }
+    .section { margin-bottom: 40px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { text-align: left; border-bottom: 2px solid #333; padding: 4px 8px; font-size: 13px; }
+    td { padding: 4px 8px; border-bottom: 1px solid #ddd; }
+    tr:last-child td { border-bottom: none; }
+    .total { text-align: right; font-weight: bold; margin-top: 8px; }
+    .recipe-block { margin-bottom: 24px; }
+    .prep-notes { margin-top: 8px; color: #444; }
+    @media print {
+      body { margin: 20px; }
+      .section { page-break-inside: avoid; }
+      .recipe-block { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  ${summarySection}
+  ${shoppingSection}
+  ${recipeSection}
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+document.querySelector('.btn-primary').addEventListener('click', generatePrintView);
 
 
 // ============================================
