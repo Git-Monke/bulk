@@ -161,39 +161,41 @@ function buildSlotCard(variant, meal, entry) {
 
   const isModified = isRecipeModified(entry.recipeId);
   const card = document.createElement('div');
-  card.className = 'bg-base-200 rounded-lg p-2 text-xs space-y-1.5' + (isModified ? ' border-l-4 border-gray-600' : '');
+  card.className = 'slot-card num' + (isModified ? ' is-modified' : '');
   card.dataset.entryId = entry.entryId;
 
   function renderMacros() {
     const m = calculateRecipeMacros(recipe, entry.multiplier);
     const weight = recipe.servingSize * entry.multiplier;
     return `
-      <div class="grid grid-cols-2 gap-x-2 text-base-content/70">
-        <span>${fmtNum(m.calories)} kcal</span>
-        <span>${fmtNum(m.protein)}g prot</span>
-        <span>${fmtNum(m.carbs)}g carbs</span>
-        <span>${fmtNum(m.fat)}g fat</span>
-        <span>${fmtNum(weight)}g total</span>
-        <span class="text-primary font-semibold">${fmtNum(m.price, true)}</span>
+      <div class="slot-macros">
+        <span><span class="stat-num">${fmtNum(m.calories)}</span> kcal</span>
+        <span><span class="stat-num">${fmtNum(m.protein)}g</span> prot</span>
+        <span><span class="stat-num">${fmtNum(m.carbs)}g</span> carbs</span>
+        <span><span class="stat-num">${fmtNum(m.fat)}g</span> fat</span>
+        <span><span class="stat-num">${fmtNum(weight)}g</span> total</span>
+        <span class="price">${fmtNum(m.price, true)}</span>
       </div>
     `;
   }
 
   function rebuild() {
     card.innerHTML = `
-      <div class="flex items-start justify-between gap-1">
-        <span class="font-semibold text-sm leading-tight">${recipe.name}</span>
-        <button class="btn btn-ghost btn-xs text-error px-1 remove-btn" title="Remove">✕</button>
+      <div class="slot-card-head">
+        <span class="slot-card-name">${recipe.name}</span>
+        <button class="slot-card-remove remove-btn" title="Remove" aria-label="Remove">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
       </div>
       <div class="macros-display">${renderMacros()}</div>
-      <div class="flex items-center gap-2">
+      <div class="slider-row">
         <input
           type="range"
-          class="range range-xs range-primary flex-1"
+          class="bulk-slider"
           min="0.1" max="4" step="0.1"
           value="${entry.multiplier}"
         >
-        <span class="multiplier-label font-mono w-8 text-right">${entry.multiplier.toFixed(1)}x</span>
+        <span class="multiplier-label">${entry.multiplier.toFixed(1)}×</span>
       </div>
     `;
 
@@ -207,7 +209,7 @@ function buildSlotCard(variant, meal, entry) {
       const val = parseFloat(e.target.value);
       entry.multiplier = val;
       updateEntryMultiplier(variant, meal, entry.entryId, val);
-      card.querySelector('.multiplier-label').textContent = val.toFixed(1) + 'x';
+      card.querySelector('.multiplier-label').textContent = val.toFixed(1) + '×';
       card.querySelector('.macros-display').innerHTML = renderMacros();
       updateSummary();
     });
@@ -230,7 +232,7 @@ function renderRecipeList() {
   const filtered = RECIPES.filter(r => r.category === activeCategory);
 
   if (filtered.length === 0) {
-    container.innerHTML = '<p class="text-base-content/40 text-sm">No recipes in this category yet.</p>';
+    container.innerHTML = '<p class="empty-line">No recipes in this category yet.</p>';
     return;
   }
 
@@ -240,28 +242,23 @@ function renderRecipeList() {
     const macros = calculateRecipeMacros(fullRecipe);
 
     const card = document.createElement('div');
-    card.className = 'card bg-base-200 cursor-grab hover:bg-base-300 transition-colors select-none' + (isModified ? ' border-l-4 border-gray-600' : '');
+    card.className = 'recipe-card' + (isModified ? ' is-modified' : '');
     card.dataset.recipeId = recipe.id;
     card.innerHTML = `
-      <div class="card-body p-3 relative">
-        <button class="btn btn-ghost btn-xs absolute top-2 right-2 edit-recipe-btn" title="Edit Recipe">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </button>
-        <h3 class="card-title text-sm">${recipe.name}${isModified ? '<span class="ml-1 badge badge-xs badge-warning">Modified</span>' : ''}</h3>
-        <div class="text-xs text-base-content/70 space-y-1">
-          <div class="flex justify-between">
-            <span>${fmtNum(macros.calories)} kcal</span>
-            <span>${fmtNum(macros.protein)}g protein</span>
-          </div>
-          <div class="flex justify-between">
-            <span>${fmtNum(macros.carbs)}g carbs</span>
-            <span>${fmtNum(macros.fat)}g fat</span>
-          </div>
-          <div class="text-right text-primary font-semibold">${fmtNum(macros.price, true)}/serving</div>
-        </div>
+      <button class="recipe-card-edit edit-recipe-btn" title="Edit Recipe" aria-label="Edit Recipe">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/>
+          <path d="M17.586 3.586a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+      </button>
+      <div class="recipe-card-name">${recipe.name}${isModified ? '<span class="badge-modified">Modified</span>' : ''}</div>
+      <div class="recipe-card-stats">
+        <span><span class="stat-num">${fmtNum(macros.calories)}</span> kcal</span>
+        <span><span class="stat-num">${fmtNum(macros.protein)}g</span> prot</span>
+        <span><span class="stat-num">${fmtNum(macros.carbs)}g</span> carbs</span>
+        <span><span class="stat-num">${fmtNum(macros.fat)}g</span> fat</span>
       </div>
+      <div class="recipe-card-price">${fmtNum(macros.price, true)} / serving</div>
     `;
     
     // Add edit button listener
@@ -288,31 +285,34 @@ function renderMealGrid() {
 
   const variantLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
-  container.className = 'flex gap-4 p-1 h-full';
+  container.className = 'flex gap-5 h-full';
   container.innerHTML = '';
 
   for (let v = 0; v < variants; v++) {
     const col = document.createElement('div');
-    col.className = 'flex flex-col gap-4 flex-1 min-w-[200px]';
+    col.className = 'day-col';
 
     const colHeader = document.createElement('div');
-    colHeader.className = 'text-center font-bold text-base-content/60 text-sm uppercase tracking-widest';
-    colHeader.textContent = `Day ${variantLabels[v] || (v + 1)}`;
+    colHeader.className = 'day-header';
+    colHeader.innerHTML = `
+      <span class="day-header-label">Day</span>
+      <span class="day-header-name">${variantLabels[v] || (v + 1)}</span>
+    `;
     col.appendChild(colHeader);
 
     for (let m = 0; m < mealsPerDay; m++) {
       const slot = document.createElement('div');
-      slot.className = 'card bg-base-100 border-2 border-dashed border-base-300 hover:border-primary/50 transition-colors flex flex-col flex-1';
+      slot.className = 'meal-slot';
       slot.dataset.variant = v;
       slot.dataset.meal = m;
 
       const header = document.createElement('div');
-      header.className = 'text-xs text-base-content/40 uppercase tracking-wide p-2 border-b border-base-200 shrink-0';
+      header.className = 'meal-slot-header';
       header.textContent = `Meal ${m + 1}`;
       slot.appendChild(header);
 
       const stack = document.createElement('div');
-      stack.className = 'recipe-stack flex-1 p-2 space-y-2 overflow-y-auto min-h-[60px]';
+      stack.className = 'recipe-stack';
       stack.dataset.variant = v;
       stack.dataset.meal = m;
 
@@ -448,22 +448,25 @@ function updateSummary() {
     anyData = true;
 
     const row = document.createElement('div');
-    row.className = 'rounded-lg bg-base-100 p-2 text-xs space-y-1';
+    row.className = 'variant-row num';
     row.innerHTML = `
-      <div class="font-semibold">Day ${variantLabels[v] || (v + 1)} <span class="font-normal text-base-content/50">(×${occurrences[v]})</span></div>
-      <div class="grid grid-cols-2 gap-x-2 text-base-content/70">
-        <span>${fmtNum(vd.calories)} kcal</span>
-        <span>${fmtNum(vd.protein)}g prot</span>
-        <span>${fmtNum(vd.carbs)}g carbs</span>
-        <span>${fmtNum(vd.fat)}g fat</span>
+      <div class="variant-row-head">
+        <span class="variant-row-name">Day ${variantLabels[v] || (v + 1)}</span>
+        <span class="variant-row-occ">×${occurrences[v]}</span>
       </div>
-      <div class="text-right text-primary font-semibold">${fmtNum(vd.price, true)}/day</div>
+      <div class="variant-row-stats">
+        <span><span class="stat-num">${fmtNum(vd.calories)}</span> kcal</span>
+        <span><span class="stat-num">${fmtNum(vd.protein)}g</span> prot</span>
+        <span><span class="stat-num">${fmtNum(vd.carbs)}g</span> carbs</span>
+        <span><span class="stat-num">${fmtNum(vd.fat)}g</span> fat</span>
+      </div>
+      <div class="variant-row-price">${fmtNum(vd.price, true)} / day</div>
     `;
     breakdownEl.appendChild(row);
   }
 
   if (!anyData) {
-    breakdownEl.innerHTML = '<p class="text-base-content/50 text-xs">No meals planned yet</p>';
+    breakdownEl.innerHTML = '<p class="empty-line">No meals planned yet</p>';
   }
 }
 
@@ -816,7 +819,7 @@ function generatePrintView() {
   win.print();
 }
 
-document.querySelector('.btn-primary').addEventListener('click', generatePrintView);
+document.getElementById('btn-print').addEventListener('click', generatePrintView);
 
 
 // ============================================
@@ -863,30 +866,30 @@ function renderEditIngredients() {
     
     const maxAmount = ing.originalAmount * 2;
     const row = document.createElement('div');
-    row.className = 'flex items-center gap-3 p-2 bg-base-200 rounded-lg';
+    row.className = 'edit-row';
     row.innerHTML = `
       <div class="flex-1 min-w-0">
-        <div class="font-medium text-sm truncate">${ingredient.name}</div>
-        <div class="flex items-center gap-2 mt-1">
-          <input 
-            type="range" 
-            class="range range-xs range-primary flex-1 ingredient-slider"
-            min="0" 
-            max="${maxAmount}" 
+        <div class="edit-row-name truncate">${ingredient.name}</div>
+        <div class="edit-row-controls">
+          <input
+            type="range"
+            class="bulk-slider flex-1 ingredient-slider"
+            min="0"
+            max="${maxAmount}"
             step="1"
             value="${ing.amount}"
             data-ingredient-id="${ing.id}"
           >
-          <input 
-            type="number" 
-            class="input input-bordered input-xs w-20 text-center ingredient-input"
+          <input
+            type="number"
+            class="edit-num-input ingredient-input"
             min="0"
             max="${maxAmount}"
             step="1"
             value="${Math.round(ing.amount)}"
             data-ingredient-id="${ing.id}"
           >
-          <span class="text-xs text-base-content/50 w-8">${ingredient.unit}</span>
+          <span class="edit-unit">${ingredient.unit}</span>
         </div>
       </div>
     `;
