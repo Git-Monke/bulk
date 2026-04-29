@@ -144,7 +144,15 @@ function renderRecipeList() {
   const container = document.getElementById('recipe-list');
   container.innerHTML = '';
 
-  for (const recipe of RECIPES) {
+  const activeCategory = document.getElementById('recipe-category').value;
+  const filtered = RECIPES.filter(r => r.category === activeCategory);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<p class="text-base-content/40 text-sm">No recipes in this category yet.</p>';
+    return;
+  }
+
+  for (const recipe of filtered) {
     const macros = calculateRecipeMacros(recipe);
 
     const card = document.createElement('div');
@@ -373,6 +381,9 @@ document.getElementById('input-meals').addEventListener('input', () => {
 });
 document.getElementById('input-variants').addEventListener('input', () => {
   renderMealGrid();
+});
+document.getElementById('recipe-category').addEventListener('change', () => {
+  renderRecipeList();
 });
 
 // ============================================

@@ -114,23 +114,38 @@ The function reuses `computeOccurrences()`, `calculateRecipeMacros()`, and `fmtN
 
 ---
 
+## Recipe Categories
+
+Recipes now have a `category` field. The sidebar shows a dropdown to switch between categories. `renderRecipeList()` reads `document.getElementById('recipe-category').value` and filters `RECIPES` accordingly.
+
+**Current categories:**
+- `"meal"` — standard food recipes (all original recipes)
+- `"drink"` — drinks (Whole Milk, Orange Juice, Protein Shake)
+- `"snack"` — snacks (currently empty)
+
+All categories are functionally identical — they use the same drag-and-drop mechanics, gridState, macros calculations, and print view. The category field is purely a UI filter.
+
+**To add a new category:** add a new `<option>` to the `#recipe-category` select in `index.html` and add recipes with the matching `category` string. No JS changes needed.
+
+---
+
 ## Adding a New Recipe
 
 1. Add any new ingredients to `INGREDIENTS` in `src/data.js` following the existing schema
 2. Add the recipe object to `RECIPES` in `src/data.js`:
    - `id`: unique kebab-case string
+   - `category`: `"meal"`, `"drink"`, `"snack"`, or any new category string
    - `name`: display name
-   - `servingSize`: total grams (1x serving)
+   - `servingSize`: total grams/ml (1x serving)
    - `ingredients`: array of `{ id, amount }` referencing INGREDIENTS keys
    - `prepNotes`: one or two sentences for the print prep guide
 
-No other changes needed — recipes appear in the sidebar automatically.
+No other changes needed — recipes appear in the sidebar automatically under their category.
 
 ---
 
 ## Known Gaps / TODO
 
-- **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **No localStorage** — all state is lost on page refresh (out of scope for v1 per SPEC)
 - **Mobile not optimized** — desktop-first per SPEC

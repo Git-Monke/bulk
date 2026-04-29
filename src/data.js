@@ -172,6 +172,26 @@ const INGREDIENTS = {
     macrosPer100g: { calories: 149, protein: 6.4, carbs: 33, fat: 0.5 },
     pricePerUnit: 0.015,
     unit: "g"
+  },
+
+  // Drinks
+  "whole-milk": {
+    name: "Whole milk",
+    macrosPer100g: { calories: 61, protein: 3.2, carbs: 4.8, fat: 3.3 },
+    pricePerUnit: 0.001,
+    unit: "ml"
+  },
+  "orange-juice": {
+    name: "Orange juice",
+    macrosPer100g: { calories: 45, protein: 0.7, carbs: 10, fat: 0.2 },
+    pricePerUnit: 0.002,
+    unit: "ml"
+  },
+  "whey-protein-powder": {
+    name: "Whey protein powder",
+    macrosPer100g: { calories: 380, protein: 80, carbs: 7, fat: 4 },
+    pricePerUnit: 0.04,
+    unit: "g"
   }
 };
 
@@ -182,6 +202,7 @@ const INGREDIENTS = {
 const RECIPES = [
   {
     id: "chicken-rice",
+    category: "meal",
     name: "Chicken & Rice",
     servingSize: 450,
     ingredients: [
@@ -195,6 +216,7 @@ const RECIPES = [
   },
   {
     id: "beef-bowl",
+    category: "meal",
     name: "Beef Rice Bowl",
     servingSize: 420,
     ingredients: [
@@ -208,6 +230,7 @@ const RECIPES = [
   },
   {
     id: "salmon-potato",
+    category: "meal",
     name: "Salmon & Sweet Potato",
     servingSize: 380,
     ingredients: [
@@ -221,6 +244,7 @@ const RECIPES = [
   },
   {
     id: "shrimp-pasta",
+    category: "meal",
     name: "Garlic Shrimp Pasta",
     servingSize: 400,
     ingredients: [
@@ -235,6 +259,7 @@ const RECIPES = [
   },
   {
     id: "tofu-stirfry",
+    category: "meal",
     name: "Tofu Stir Fry",
     servingSize: 350,
     ingredients: [
@@ -248,6 +273,7 @@ const RECIPES = [
   },
   {
     id: "egg-rice",
+    category: "meal",
     name: "Egg & Rice",
     servingSize: 320,
     ingredients: [
@@ -260,6 +286,7 @@ const RECIPES = [
   },
   {
     id: "breakfast-bowl",
+    category: "meal",
     name: "Breakfast Bowl",
     servingSize: 280,
     ingredients: [
@@ -270,5 +297,38 @@ const RECIPES = [
       { id: "greek-yogurt", amount: 60 }
     ],
     prepNotes: "Cook oats. Scramble eggs. Slice banana. Layer in container: oats, yogurt, eggs, banana, peanut butter."
+  },
+
+  // Drinks
+  {
+    id: "whole-milk-glass",
+    category: "drink",
+    name: "Whole Milk",
+    servingSize: 300,
+    ingredients: [
+      { id: "whole-milk", amount: 300 }
+    ],
+    prepNotes: "Pour and serve cold."
+  },
+  {
+    id: "orange-juice-glass",
+    category: "drink",
+    name: "Orange Juice",
+    servingSize: 250,
+    ingredients: [
+      { id: "orange-juice", amount: 250 }
+    ],
+    prepNotes: "Pour and serve cold."
+  },
+  {
+    id: "protein-shake",
+    category: "drink",
+    name: "Protein Shake",
+    servingSize: 270,
+    ingredients: [
+      { id: "whey-protein-powder", amount: 30 },
+      { id: "whole-milk", amount: 240 }
+    ],
+    prepNotes: "Add 1 scoop (30g) whey protein to 240ml whole milk. Shake or blend until smooth."
   }
 ];

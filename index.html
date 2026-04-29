@@ -43,7 +43,14 @@
     
     <!-- Left Sidebar: Recipe List -->
     <aside class="w-72 bg-base-100 border-r border-base-300 overflow-y-auto p-4 flex-shrink-0">
-      <h2 class="font-bold text-lg mb-4">Recipes</h2>
+      <div class="flex items-center gap-2 mb-4">
+        <h2 class="font-bold text-lg">Recipes</h2>
+        <select id="recipe-category" class="select select-bordered select-sm flex-1">
+          <option value="meal">Meals</option>
+          <option value="drink">Drinks</option>
+          <option value="snack">Snacks</option>
+        </select>
+      </div>
       <div id="recipe-list" class="space-y-2">
         <!-- Recipes will be injected here -->
       </div>
