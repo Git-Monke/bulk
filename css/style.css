@@ -23,9 +23,9 @@
   --su: 60% 0.13 160;
   --wa: 70% 0.14 75;
   --er: 58% 0.20 25;
-  --rounded-box: 0.625rem;
-  --rounded-btn: 0.5rem;
-  --rounded-badge: 0.375rem;
+  --rounded-box: 0;
+  --rounded-btn: 0;
+  --rounded-badge: 0;
   --animation-btn: 0.2s;
   --border-btn: 1px;
 
@@ -45,23 +45,29 @@
   --c-warm-soft: #fffbeb;
   --c-danger: #b91c1c;
   --c-danger-soft: #fef2f2;
-  --shadow-card: 0 1px 0 rgba(28, 25, 23, 0.04), 0 1px 3px rgba(28, 25, 23, 0.05);
-  --shadow-pop: 0 2px 4px rgba(28, 25, 23, 0.05), 0 8px 24px rgba(28, 25, 23, 0.08);
+  --shadow-card: none;
+  --shadow-pop: 0 1px 0 rgba(28, 25, 23, 0.12);
 }
 
 /* ============================================================
    Base
    ============================================================ */
 html, body {
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-feature-settings: 'cv11', 'ss01';
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   background: var(--c-canvas);
   color: var(--c-text);
   letter-spacing: -0.005em;
 }
 
+.stat-num,
+.price,
+.multiplier-label,
+.variant-row-occ,
+.field-input,
+.edit-num-input,
 .num,
 .num * {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
 }
@@ -88,7 +94,7 @@ html, body {
 .brand-mark {
   width: 36px;
   height: 36px;
-  border-radius: 9px;
+  border-radius: 0;
   background: var(--c-accent);
   color: #fff;
   display: grid;
@@ -133,7 +139,7 @@ html, body {
   height: 34px;
   padding: 0 10px;
   border: 1px solid var(--c-line);
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 14px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -175,11 +181,10 @@ input[type=number] {
   font-size: 13px;
   font-weight: 600;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 0;
   border: 0;
   cursor: pointer;
-  transition: background 120ms, transform 120ms, box-shadow 120ms;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: background 120ms, transform 120ms;
 }
 .btn-accent:hover { background: #065f46; }
 .btn-accent:active { transform: translateY(1px); }
@@ -188,7 +193,7 @@ input[type=number] {
   font-size: 13px;
   font-weight: 600;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 0;
   border: 1px solid transparent;
   background: transparent;
   color: var(--c-muted);
@@ -246,7 +251,7 @@ input[type=number] {
   height: 30px;
   padding: 0 28px 0 10px;
   border: 1px solid var(--c-line);
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--c-surface);
   font-size: 12px;
   font-weight: 600;
@@ -271,7 +276,7 @@ input[type=number] {
   position: relative;
   background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 10px 12px;
   cursor: grab;
   transition: border-color 120ms, box-shadow 120ms, transform 120ms;
@@ -288,7 +293,7 @@ input[type=number] {
   left: 0; top: 10px; bottom: 10px;
   width: 3px;
   background: var(--c-warm);
-  border-radius: 0 2px 2px 0;
+  border-radius: 0;
 }
 .recipe-card-name {
   font-size: 13px;
@@ -305,7 +310,7 @@ input[type=number] {
   right: 6px;
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: 0;
   display: grid;
   place-items: center;
   color: var(--c-faint);
@@ -348,7 +353,7 @@ input[type=number] {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: 0;
   background: var(--c-warm-soft);
   color: var(--c-warm);
 }
@@ -393,7 +398,7 @@ input[type=number] {
   position: relative;
   background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: 10px;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -405,7 +410,6 @@ input[type=number] {
 }
 .meal-slot.drag-over {
   border-color: var(--c-accent);
-  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.08);
 }
 .meal-slot-header {
   font-size: 10px;
@@ -440,7 +444,7 @@ input[type=number] {
 /* Slot cards (recipes inside a meal) */
 .slot-card {
   background: var(--c-inset);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
@@ -468,7 +472,7 @@ input[type=number] {
 .slot-card-remove {
   width: 20px;
   height: 20px;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   border: 0;
   color: var(--c-faint);
@@ -556,7 +560,7 @@ input[type=number] {
   gap: 8px;
 }
 .multiplier-label {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 11px;
   font-weight: 600;
   width: 32px;
@@ -570,7 +574,7 @@ input[type=number] {
 .summary-card {
   background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 12px 14px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-card);
@@ -629,7 +633,7 @@ input[type=number] {
 /* Variant breakdown rows */
 .variant-row {
   background: var(--c-inset);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 8px 10px;
 }
 .variant-row-head {
@@ -679,7 +683,7 @@ input[type=number] {
   width: 56px;
   height: 56px;
   margin: 0 auto 14px;
-  border-radius: 14px;
+  border-radius: 0;
   background: var(--c-surface);
   border: 1px solid var(--c-line);
   display: grid;
@@ -706,7 +710,7 @@ input[type=number] {
 .modal-box {
   background: var(--c-surface);
   border: 1px solid var(--c-line);
-  border-radius: 14px;
+  border-radius: 0;
   box-shadow: var(--shadow-pop);
 }
 
@@ -715,7 +719,7 @@ input[type=number] {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--c-inset);
 }
 .edit-row-name {
@@ -734,7 +738,7 @@ input[type=number] {
   height: 28px;
   padding: 0 8px;
   border: 1px solid var(--c-line);
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -770,7 +774,7 @@ input[type=number] {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--c-line);
-  border-radius: 999px;
+  border-radius: 0;
   border: 2px solid transparent;
   background-clip: content-box;
 }
