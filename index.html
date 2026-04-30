@@ -53,14 +53,33 @@
   <!-- Edit Recipe Modal -->
   <dialog id="edit-modal" class="modal">
     <div class="modal-box max-w-2xl max-h-[90vh] flex flex-col">
-      <h3 class="font-bold text-lg flex items-center gap-2">
-        <span id="edit-recipe-name">Edit Recipe</span>
+      <div class="flex items-center gap-2 mb-1">
+        <input type="text" id="edit-recipe-name" class="input input-bordered input-md font-bold text-lg flex-1" placeholder="Recipe name">
         <span id="edit-modified-badge" class="badge-modified hidden">Modified</span>
-      </h3>
-      <p class="text-sm text-stone-500 mb-4" id="edit-recipe-desc"></p>
+      </div>
+      <div class="flex items-center gap-4 mb-4">
+        <label class="flex items-center gap-2 text-sm text-stone-500">
+          <span>Serving size:</span>
+          <input type="number" id="edit-serving-size" class="input input-bordered input-sm w-24" min="1" value="300">
+          <span>g</span>
+        </label>
+      </div>
 
       <div id="edit-ingredients" class="flex-1 overflow-y-auto space-y-2 pr-2">
         <!-- Ingredient rows will be injected here -->
+      </div>
+      <button id="add-ingredient-btn" class="btn btn-sm btn-outline btn-primary mt-3">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add ingredient
+      </button>
+
+      <!-- Ingredient search dropdown (hidden by default) -->
+      <div id="ingredient-search-container" class="hidden mt-2">
+        <input type="text" id="ingredient-search" class="input input-bordered input-sm w-full" placeholder="Search ingredients..." autocomplete="off">
+        <ul id="ingredient-search-results" class="menu bg-base-100 border border-base-300 rounded-box mt-1 max-h-48 overflow-y-auto"></ul>
       </div>
 
       <!-- Sticky Stats Footer -->
@@ -75,8 +94,10 @@
         </div>
         <div class="flex gap-2">
           <button id="edit-reset-btn" class="btn-soft btn-soft-warning hidden">Revert to default</button>
+          <button id="edit-delete-btn" class="btn-soft btn-soft-error hidden">Delete</button>
           <div class="flex-1"></div>
-          <button id="edit-cancel-btn" class="btn-accent">Done</button>
+          <button id="edit-cancel-btn" class="btn-soft">Cancel</button>
+          <button id="edit-save-btn" class="btn-accent">Save</button>
         </div>
       </div>
     </div>
@@ -96,9 +117,16 @@
           <option value="snack">Snacks</option>
         </select>
       </div>
-      <div id="recipe-list" class="space-y-1.5">
+      <div id="recipe-list" class="space-y-1.5 flex-1 overflow-y-auto">
         <!-- Recipes will be injected here -->
       </div>
+      <button id="btn-new-recipe" class="btn btn-sm btn-primary w-full mt-3">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        New Recipe
+      </button>
     </aside>
 
     <!-- Main Grid Area -->

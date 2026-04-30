@@ -768,6 +768,38 @@ input[type=number] {
   width: 24px;
 }
 
+/* Ingredient search */
+#ingredient-search-container {
+  position: relative;
+}
+#ingredient-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  box-shadow: var(--shadow-pop);
+  border-radius: 0;
+  padding: 4px;
+}
+.ingredient-search-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--c-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.ingredient-search-item:hover {
+  background: var(--c-inset);
+}
+
 /* ============================================================
    Sortable.js helpers
    ============================================================ */

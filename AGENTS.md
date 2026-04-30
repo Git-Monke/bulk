@@ -13,7 +13,7 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 - `src/grid-ui.js` — meal grid rendering and summary calculations
 - `src/print.js` — print view generation
 - `src/main.js` — event wiring and initialization (thin glue)
-- `css/style.css` — reserved for custom styles (currently unused)
+- `css/style.css` — custom styles for theme overrides, ingredient search, modal elements
 
 ### Data Model
 
@@ -146,6 +146,17 @@ All plan state is saved to `localStorage` under the key `bulk-meal-planner-v1` o
 - `saveCustomRecipe()`, `getCustomRecipe()`, `deleteCustomRecipe()` in `calculations.js`
 - `isRecipeModified()` checks if a recipe has been customized
 
+**Custom Recipe Creation & Editing** (via edit modal):
+- Users can create new recipes via `+ New Recipe` button in sidebar
+- Users can edit existing recipes via the pencil icon on recipe cards
+- Modal allows: editing title, serving size, adding/removing ingredients, adjusting amounts
+- Adding ingredients opens a search typeahead that filters `INGREDIENTS` by name
+- New recipes get auto-generated IDs (slugified title + timestamp)
+- New recipes are pushed to `ALL_RECIPES` array at runtime and persisted to custom storage
+- Delete button appears only for custom/modified recipes (not base recipes)
+- Revert button restores original base recipe by deleting custom override
+- Recipe changes trigger `onRecipeModifiedCallback` which refreshes list, grid, and summary
+
 ### Number Formatting (`fmtNum`)
 - `fmtNum(num)` — 2 significant figures (e.g. 321 → "320", 1.5 → "1.5")
 - `fmtNum(num, true)` — nearest cent with `$` prefix (e.g. `$1.88`)
@@ -238,6 +249,7 @@ src/
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **Mobile not optimized** — desktop-first per SPEC
 - **ES modules required** — all scripts now use ES module imports/exports, requires modern browser
+- **Custom recipes lack prepNotes editing** — prepNotes stays empty, no meal prep section in print for custom recipes
 
 ## Print View Behavior
 

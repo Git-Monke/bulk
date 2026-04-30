@@ -18,6 +18,7 @@ import {
 
 let editingRecipeId = null;
 let editingIngredients = [];
+let isNewRecipe = false;
 
 // Callbacks that will be set by main.js
 let onRecipeModifiedCallback = null;
@@ -89,26 +90,53 @@ export function renderRecipeList() {
 // -------------------------------------------
 
 export function openEditModal(recipeId) {
-  const baseRecipe = ALL_RECIPES.find(r => r.id === recipeId);
-  if (!baseRecipe) return;
-
-  const currentRecipe = getRecipe(recipeId);
-  editingRecipeId = recipeId;
-
-  // Clone ingredients, storing original amount for slider range calculation
-  editingIngredients = currentRecipe.ingredients.map(ing => ({
-    id: ing.id,
-    amount: ing.amount,
-    originalAmount: baseRecipe.ingredients.find(bi => bi.id === ing.id)?.amount || ing.amount
-  }));
-
   const modal = document.getElementById('edit-modal');
-  document.getElementById('edit-recipe-name').textContent = currentRecipe.name;
-  document.getElementById('edit-recipe-desc').textContent = `Original serving size: ${currentRecipe.servingSize}g`;
+  const nameInput = document.getElementById('edit-recipe-name');
+  const servingInput = document.getElementById('edit-serving-size');
+  const deleteBtn = document.getElementById('edit-delete-btn');
+  const resetBtn = document.getElementById('edit-reset-btn');
 
-  const modified = isRecipeModified(recipeId);
-  document.getElementById('edit-modified-badge').classList.toggle('hidden', !modified);
-  document.getElementById('edit-reset-btn').classList.toggle('hidden', !modified);
+  // Hide search container when opening
+  document.getElementById('ingredient-search-container').classList.add('hidden');
+
+  if (recipeId === null) {
+    // New recipe mode
+    isNewRecipe = true;
+    editingRecipeId = null;
+    nameInput.value = '';
+    servingInput.value = 300;
+    editingIngredients = [];
+
+    // Pre-fill with first ingredient
+    const firstIngId = Object.keys(INGREDIENTS)[0];
+    if (firstIngId) {
+      editingIngredients = [{ id: firstIngId, amount: 100 }];
+    }
+
+    deleteBtn.classList.add('hidden');
+    resetBtn.classList.add('hidden');
+  } else {
+    // Edit existing recipe
+    isNewRecipe = false;
+    const baseRecipe = ALL_RECIPES.find(r => r.id === recipeId);
+    if (!baseRecipe) return;
+
+    const currentRecipe = getRecipe(recipeId);
+    editingRecipeId = recipeId;
+    nameInput.value = currentRecipe.name;
+    servingInput.value = currentRecipe.servingSize;
+
+    // Clone ingredients, storing original amount for slider range calculation
+    editingIngredients = currentRecipe.ingredients.map(ing => ({
+      id: ing.id,
+      amount: ing.amount,
+      originalAmount: baseRecipe.ingredients.find(bi => bi.id === ing.id)?.amount || ing.amount
+    }));
+
+    const modified = isRecipeModified(recipeId);
+    deleteBtn.classList.toggle('hidden', !modified);
+    resetBtn.classList.toggle('hidden', !modified);
+  }
 
   renderEditIngredients();
   updateEditStats();
@@ -123,12 +151,22 @@ function renderEditIngredients() {
     const ingredient = INGREDIENTS[ing.id];
     if (!ingredient) continue;
 
-    const maxAmount = ing.originalAmount * 2;
+    const baseAmount = ing.originalAmount || ing.amount;
+    const maxAmount = Math.max(baseAmount * 2, 1000);
+
     const row = document.createElement('div');
     row.className = 'edit-row';
     row.innerHTML = `
       <div class="flex-1 min-w-0">
-        <div class="edit-row-name truncate">${ingredient.name}</div>
+        <div class="flex items-center justify-between">
+          <div class="edit-row-name truncate">${ingredient.name}</div>
+          <button class="btn btn-ghost btn-xs text-error remove-ingredient-btn" data-ingredient-id="${ing.id}" title="Remove ingredient">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
         <div class="edit-row-controls">
           <input
             type="range"
@@ -155,6 +193,7 @@ function renderEditIngredients() {
 
     const slider = row.querySelector('.ingredient-slider');
     const input = row.querySelector('.ingredient-input');
+    const removeBtn = row.querySelector('.remove-ingredient-btn');
 
     // Slider -> input sync
     slider.addEventListener('input', (e) => {
@@ -163,7 +202,6 @@ function renderEditIngredients() {
       const ingData = editingIngredients.find(i => i.id === ing.id);
       if (ingData) ingData.amount = val;
       updateEditStats();
-      onIngredientChange();
     });
 
     // Input -> slider sync
@@ -174,7 +212,13 @@ function renderEditIngredients() {
       const ingData = editingIngredients.find(i => i.id === ing.id);
       if (ingData) ingData.amount = val;
       updateEditStats();
-      onIngredientChange();
+    });
+
+    // Remove button
+    removeBtn.addEventListener('click', () => {
+      editingIngredients = editingIngredients.filter(i => i.id !== ing.id);
+      renderEditIngredients();
+      updateEditStats();
     });
 
     container.appendChild(row);
@@ -184,24 +228,10 @@ function renderEditIngredients() {
 function updateEditStats() {
   // Build temporary recipe object for calculation
   const tempRecipe = {
-    id: editingRecipeId,
+    id: editingRecipeId || 'temp',
     ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount })),
-    servingSize: 0 // will be calculated from ingredients
+    servingSize: editingIngredients.reduce((sum, ing) => sum + ing.amount, 0)
   };
-
-  // Calculate total weight from ingredients
-  let totalRawWeight = 0;
-  let totalPreppedWeight = 0;
-  for (const ing of editingIngredients) {
-    const ingredient = INGREDIENTS[ing.id];
-    if (ingredient) {
-      const rawAmount = ing.amount;
-      const preppedMultiplier = ingredient.preppedMultiplier ?? 1;
-      totalRawWeight += rawAmount;
-      totalPreppedWeight += rawAmount * preppedMultiplier;
-    }
-  }
-  tempRecipe.servingSize = totalRawWeight;
 
   const macros = calculateRecipeMacros(tempRecipe);
 
@@ -211,33 +241,82 @@ function updateEditStats() {
   document.getElementById('edit-fat').textContent = fmtNum(macros.fat) + 'g';
 
   // Show prepped weight with raw in tooltip
-  const weightDisplay = totalPreppedWeight !== totalRawWeight && totalRawWeight > 0
-    ? `${Math.round(totalPreppedWeight)}g (${Math.round(totalRawWeight)}g raw)`
-    : `${Math.round(totalRawWeight)}g`;
+  const rawWeight = macros.rawWeight;
+  const preppedWeight = macros.preppedWeight;
+  const weightDisplay = preppedWeight !== rawWeight && rawWeight > 0
+    ? `${Math.round(preppedWeight)}g (${Math.round(rawWeight)}g raw)`
+    : `${Math.round(rawWeight)}g`;
   document.getElementById('edit-weight').textContent = weightDisplay;
   document.getElementById('edit-price').textContent = fmtNum(macros.price, true);
 }
 
-function saveEditedRecipe() {
-  const baseRecipe = ALL_RECIPES.find(r => r.id === editingRecipeId);
-  if (!baseRecipe) return;
+function generateRecipeId(title) {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'recipe';
+  const suffix = Date.now().toString(36);
+  return `${slug}-${suffix}`;
+}
 
-  // Calculate new serving size from ingredients
-  let totalWeight = 0;
-  for (const ing of editingIngredients) {
-    totalWeight += ing.amount;
+function saveEditedRecipe() {
+  const nameInput = document.getElementById('edit-recipe-name');
+  const servingInput = document.getElementById('edit-serving-size');
+  const name = nameInput.value.trim();
+  const servingSize = parseInt(servingInput.value) || 300;
+
+  if (!name) {
+    alert('Please enter a recipe name.');
+    return false;
   }
 
-  const editedRecipe = {
-    ...baseRecipe,
-    ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount })),
-    servingSize: Math.round(totalWeight)
-  };
+  if (editingIngredients.length === 0) {
+    alert('Please add at least one ingredient.');
+    return false;
+  }
 
-  saveCustomRecipe(editedRecipe);
+  if (isNewRecipe) {
+    // Create new recipe
+    const newId = generateRecipeId(name);
+    const activeCategory = document.getElementById('recipe-category').value;
 
-  // Refresh UI to show changes across the app
+    const newRecipe = {
+      id: newId,
+      category: activeCategory,
+      name: name,
+      servingSize: servingSize,
+      ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount })),
+      prepNotes: ''
+    };
+
+    // Add to ALL_RECIPES array
+    ALL_RECIPES.push(newRecipe);
+    saveCustomRecipe(newRecipe);
+
+    // Switch to edit mode for this recipe
+    isNewRecipe = false;
+    editingRecipeId = newId;
+
+    // Show delete button now
+    document.getElementById('edit-delete-btn').classList.remove('hidden');
+  } else {
+    // Update existing recipe
+    const baseRecipe = ALL_RECIPES.find(r => r.id === editingRecipeId);
+    if (!baseRecipe) return false;
+
+    const editedRecipe = {
+      ...baseRecipe,
+      name: name,
+      servingSize: servingSize,
+      ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount }))
+    };
+
+    saveCustomRecipe(editedRecipe);
+  }
+
+  // Refresh UI
   if (onRecipeModifiedCallback) onRecipeModifiedCallback();
+  return true;
 }
 
 function resetRecipeToDefault() {
@@ -252,15 +331,127 @@ function resetRecipeToDefault() {
   document.getElementById('edit-modal').close();
 }
 
-// Auto-save on ingredient change
-function onIngredientChange() {
-  saveEditedRecipe();
+function deleteRecipe() {
+  if (!editingRecipeId) return;
+  if (!confirm('Delete this custom recipe? This cannot be undone.')) return;
+
+  deleteCustomRecipe(editingRecipeId);
+
+  // Refresh UI
+  if (onRecipeModifiedCallback) onRecipeModifiedCallback();
+
+  document.getElementById('edit-modal').close();
 }
 
-// Modal event listeners
+// -------------------------------------------
+// INGREDIENT SEARCH
+// -------------------------------------------
+
+function showIngredientSearch() {
+  const container = document.getElementById('ingredient-search-container');
+  const input = document.getElementById('ingredient-search');
+  container.classList.remove('hidden');
+  input.value = '';
+  input.focus();
+  renderSearchResults('');
+}
+
+function hideIngredientSearch() {
+  document.getElementById('ingredient-search-container').classList.add('hidden');
+}
+
+function renderSearchResults(query) {
+  const container = document.getElementById('ingredient-search-results');
+  container.innerHTML = '';
+
+  const normalizedQuery = query.toLowerCase().trim();
+  const alreadyUsed = new Set(editingIngredients.map(i => i.id));
+
+  const matches = Object.entries(INGREDIENTS)
+    .filter(([id, ing]) => !alreadyUsed.has(id))
+    .filter(([id, ing]) => ing.name.toLowerCase().includes(normalizedQuery))
+    .slice(0, 10);
+
+  for (const [id, ing] of matches) {
+    const li = document.createElement('li');
+    li.innerHTML = `<button class="ingredient-search-item" data-ingredient-id="${id}">${ing.name}</button>`;
+    container.appendChild(li);
+  }
+
+  if (matches.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'text-sm text-stone-400 px-3 py-2';
+    li.textContent = normalizedQuery ? 'No ingredients found' : 'Start typing to search...';
+    container.appendChild(li);
+  }
+}
+
+function addIngredientFromSearch(ingredientId) {
+  const ingredient = INGREDIENTS[ingredientId];
+  if (!ingredient) return;
+
+  editingIngredients.push({
+    id: ingredientId,
+    amount: 100
+  });
+
+  hideIngredientSearch();
+  renderEditIngredients();
+  updateEditStats();
+}
+
+// -------------------------------------------
+// EVENT LISTENERS
+// -------------------------------------------
+
 export function initEditModalListeners() {
+  // Reset button
   document.getElementById('edit-reset-btn').addEventListener('click', resetRecipeToDefault);
+
+  // Delete button
+  document.getElementById('edit-delete-btn').addEventListener('click', deleteRecipe);
+
+  // Cancel button - just close without saving
   document.getElementById('edit-cancel-btn').addEventListener('click', () => {
     document.getElementById('edit-modal').close();
+  });
+
+  // Save button
+  document.getElementById('edit-save-btn').addEventListener('click', () => {
+    if (saveEditedRecipe()) {
+      document.getElementById('edit-modal').close();
+    }
+  });
+
+  // Add ingredient button
+  document.getElementById('add-ingredient-btn').addEventListener('click', showIngredientSearch);
+
+  // Ingredient search input
+  document.getElementById('ingredient-search').addEventListener('input', (e) => {
+    renderSearchResults(e.target.value);
+  });
+
+  // Click on search results
+  document.getElementById('ingredient-search-results').addEventListener('click', (e) => {
+    const item = e.target.closest('.ingredient-search-item');
+    if (item) {
+      addIngredientFromSearch(item.dataset.ingredientId);
+    }
+  });
+
+  // Close search on click outside
+  document.addEventListener('click', (e) => {
+    const container = document.getElementById('ingredient-search-container');
+    const addBtn = document.getElementById('add-ingredient-btn');
+    if (!container.classList.contains('hidden') &&
+        !container.contains(e.target) &&
+        !addBtn.contains(e.target)) {
+      hideIngredientSearch();
+    }
+  });
+
+  // New Recipe button
+  document.getElementById('btn-new-recipe').addEventListener('click', () => {
+    openEditModal(null);
   });
 }
