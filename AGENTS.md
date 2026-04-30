@@ -16,13 +16,18 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 - `macrosPer100g`: `{ calories, protein, carbs, fat }`
 - `pricePerUnit`: cost per gram/ml
 - `unit`: "g" or "ml"
+- `isRecipe` (optional): if `true`, auto-generates a single-ingredient recipe at runtime
+- `servingSize` (optional): required when `isRecipe: true`, defines the serving size for the generated recipe
+- `category` (optional): determines which category the auto-generated recipe appears in
 
-**RECIPES** (`src/data.js`) — array of objects:
+**ALL_RECIPES** (`src/data.js`) — merged array of base recipes + auto-generated single-ingredient recipes:
 - `id`: unique string identifier
 - `name`: display name
 - `servingSize`: total grams per 1x serving (used for weight display only)
 - `ingredients`: `[{ id, amount }]` — references INGREDIENTS keys
-- `prepNotes`: free text string for print/export section
+- `prepNotes`: free text string for print/export section (optional, empty string for no prep)
+
+**Single-Ingredient Recipes** — Ingredients with `isRecipe: true` are automatically converted to recipes at runtime. The recipe `id` is the ingredient id, `name` is the ingredient name, `servingSize` and `category` are inherited from the ingredient.
 
 **Macros/price are always derived at runtime** via `calculateRecipeMacros(recipe, multiplier)` — never hardcoded.
 
@@ -137,12 +142,14 @@ All plan state is saved to `localStorage` under the key `bulk-meal-planner-v1` o
 
 ## Recipe Categories
 
-Recipes now have a `category` field. The sidebar shows a dropdown to switch between categories. `renderRecipeList()` reads `document.getElementById('recipe-category').value` and filters `RECIPES` accordingly.
+Recipes now have a `category` field. The sidebar shows a dropdown to switch between categories. `renderRecipeList()` reads `document.getElementById('recipe-category').value` and filters `ALL_RECIPES` accordingly.
 
 **Current categories:**
 - `"meal"` — standard food recipes (all original recipes)
 - `"drink"` — drinks (Whole Milk, Orange Juice, Protein Shake)
-- `"snack"` — snacks (currently empty)
+- `"snack"` — snacks (single-ingredient granola bar)
+
+**Auto-generated recipes** — When an ingredient has `isRecipe: true`, the generated recipe inherits the ingredient's `category` field. This keeps single-ingredient items organized with similar recipes.
 
 All categories are functionally identical — they use the same drag-and-drop mechanics, gridState, macros calculations, and print view. The category field is purely a UI filter.
 
@@ -152,6 +159,7 @@ All categories are functionally identical — they use the same drag-and-drop me
 
 ## Adding a New Recipe
 
+### Multi-Ingredient Recipe
 1. Add any new ingredients to `INGREDIENTS` in `src/data.js` following the existing schema
 2. Add the recipe object to `RECIPES` in `src/data.js`:
    - `id`: unique kebab-case string
@@ -159,9 +167,37 @@ All categories are functionally identical — they use the same drag-and-drop me
    - `name`: display name
    - `servingSize`: total grams/ml (1x serving)
    - `ingredients`: array of `{ id, amount }` referencing INGREDIENTS keys
-   - `prepNotes`: one or two sentences for the print prep guide
+   - `prepNotes`: one or two sentences for the print prep guide (or omit/empty for no prep section)
 
 No other changes needed — recipes appear in the sidebar automatically under their category.
+
+### Single-Ingredient Recipe (Ingredient as Recipe)
+For simple items like "Whole Milk" or "Granola Bar" that don't need custom prep:
+
+1. Add the ingredient to `INGREDIENTS` in `src/data.js`:
+   - Include `isRecipe: true` to enable auto-generation
+   - Include `servingSize: <number>` (required when `isRecipe: true`)
+   - Include `category: "drink"`, `"snack"`, etc. (optional, defaults to "meal")
+   - Single-ingredient recipes have no `prepNotes` — they're excluded from the Meal Prep Guide in print view
+
+Example:
+```javascript
+"chewy-granola-bar": {
+  name: "Kirkland Granola Bar",
+  macrosPer100g: { calories: 417, protein: 4.2, carbs: 75, fat: 12.5 },
+  pricePerUnit: 0.00625,
+  unit: "g",
+  isRecipe: true,        // ← Auto-generates a recipe
+  servingSize: 24,       // ← Required for recipe generation
+  category: "snack"      // ← Optional, defaults to "meal"
+}
+```
+
+This automatically creates a recipe with:
+- `id`: ingredient id (`"chewy-granola-bar"`)
+- `name`: ingredient name (`"Kirkland Granola Bar"`)
+- `ingredients`: `[{ id: "chewy-granola-bar", amount: 24 }]`
+- No `prepNotes` (empty section in print view)
 
 ---
 
@@ -169,3 +205,9 @@ No other changes needed — recipes appear in the sidebar automatically under th
 
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **Mobile not optimized** — desktop-first per SPEC
+
+## Print View Behavior
+
+- **Meal Prep Guide** — Only includes recipes that have `prepNotes` defined. Single-ingredient recipes (drinks, snacks) have no prep notes and are excluded from this section to keep the printout clean.
+- **Shopping List** — Includes all ingredients from all recipes, including single-ingredient auto-generated ones.
+- **Daily Meal Schedule** — Shows all recipes used in the plan, regardless of prep notes.
