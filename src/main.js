@@ -3,20 +3,30 @@
 // ============================================
 
 function calculateRecipeMacros(recipe, multiplier = 1) {
-  if (!recipe) return { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
-  
-  let total = { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
+  if (!recipe) return { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0, rawWeight: 0, preppedWeight: 0 };
+
+  let total = { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0, rawWeight: 0, preppedWeight: 0 };
 
   for (const ing of recipe.ingredients) {
     const ingredient = INGREDIENTS[ing.id];
     if (!ingredient) continue;
 
-    const ratio = (ing.amount * multiplier) / 100;
+    const rawAmount = ing.amount * multiplier;
+    const ratio = rawAmount / 100;
+
     total.calories += ingredient.macrosPer100g.calories * ratio;
     total.protein += ingredient.macrosPer100g.protein * ratio;
     total.carbs += ingredient.macrosPer100g.carbs * ratio;
     total.fat += ingredient.macrosPer100g.fat * ratio;
-    total.price += ingredient.pricePerUnit * ing.amount * multiplier;
+    total.price += ingredient.pricePerUnit * rawAmount;
+
+    // Raw weight is the amount before any transformation
+    total.rawWeight += rawAmount;
+
+    // Prepped weight accounts for cooking transformation (e.g., moisture loss/gain)
+    // If preppedMultiplier is defined, use it; otherwise assume 1:1
+    const preppedMultiplier = ingredient.preppedMultiplier ?? 1;
+    total.preppedWeight += rawAmount * preppedMultiplier;
   }
 
   return total;
@@ -113,7 +123,7 @@ function isRecipeModified(recipeId) {
 // ============================================
 
 // gridState: Map<"variant-meal", Array<{ entryId, recipeId, multiplier }>>
-// Keys are never deleted — out-of-bounds keys are ignored in calculations.
+// Keys are never deleted - out-of-bounds keys are ignored in calculations.
 const gridState = new Map();
 let nextEntryId = 0;
 
@@ -166,14 +176,21 @@ function buildSlotCard(variant, meal, entry) {
 
   function renderMacros() {
     const m = calculateRecipeMacros(recipe, entry.multiplier);
-    const weight = recipe.servingSize * entry.multiplier;
+    const rawWeight = m.rawWeight;
+    const preppedWeight = m.preppedWeight;
+    // Show prepped weight in the UI (what you actually eat)
+    const displayWeight = preppedWeight > 0 ? preppedWeight : recipe.servingSize * entry.multiplier;
+    // Show tooltip with raw vs prepped if they differ significantly
+    const weightLabel = preppedWeight !== rawWeight && rawWeight > 0
+      ? `${fmtNum(preppedWeight)}g cooked`
+      : `${fmtNum(displayWeight)}g`;
     return `
       <div class="slot-macros">
         <span><span class="stat-num">${fmtNum(m.calories)}</span> kcal</span>
         <span><span class="stat-num">${fmtNum(m.protein)}g</span> prot</span>
         <span><span class="stat-num">${fmtNum(m.carbs)}g</span> carbs</span>
         <span><span class="stat-num">${fmtNum(m.fat)}g</span> fat</span>
-        <span><span class="stat-num">${fmtNum(weight)}g</span> total</span>
+        <span class="weight-display"><span class="stat-num">${weightLabel}</span></span>
         <span class="price">${fmtNum(m.price, true)}</span>
       </div>
     `;
@@ -260,13 +277,13 @@ function renderRecipeList() {
       </div>
       <div class="recipe-card-price">${fmtNum(macros.price, true)} / serving</div>
     `;
-    
+
     // Add edit button listener
     card.querySelector('.edit-recipe-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       openEditModal(recipe.id);
     });
-    
+
     container.appendChild(card);
   }
 
@@ -348,7 +365,7 @@ function renderMealGrid() {
         const variant = parseInt(stack.dataset.variant);
         const meal = parseInt(stack.dataset.meal);
 
-        // Remove raw clone from DOM — we'll insert our own rendered card
+        // Remove raw clone from DOM - we'll insert our own rendered card
         rawNode.remove();
 
         // Remove placeholder if present
@@ -537,6 +554,7 @@ function generatePrintView() {
               unit: ingredient.unit,
               totalAmount,
               totalCost,
+              preppedMultiplier: ingredient.preppedMultiplier,
             });
           }
         }
@@ -627,20 +645,21 @@ function generatePrintView() {
   // Section 2: Shopping list
   const shoppingRows = [...shoppingMap.values()]
     .sort((a, b) => b.totalAmount - a.totalAmount)
-    .map(item => `
+    .map(item => {
+      return `
       <tr>
         <td>${item.name}</td>
-        <td>${Math.round(item.totalAmount)} ${item.unit}</td>
+        <td>${Math.round(item.totalAmount)}${item.unit}</td>
         <td>${fmtNum(item.totalCost, true)}</td>
-      </tr>`)
-    .join('');
+      </tr>`;
+    }).join('');
 
   const shoppingSection = `
     <section class="section">
       <h2>Shopping List</h2>
       <table>
         <tr><th>Ingredient</th><th>Amount</th><th>Est. Cost</th></tr>
-        ${shoppingRows || '<tr><td colspan="3">No ingredients — add meals to the plan first.</td></tr>'}
+        ${shoppingRows || '<tr><td colspan="3">No ingredients - add meals to the plan first.</td></tr>'}
       </table>
       <p class="total">Total: ${fmtNum(weekly.price, true)}</p>
     </section>`;
@@ -652,7 +671,7 @@ function generatePrintView() {
       const borderStyle = m === 0 ? '' : 'border-top:2px solid #aaa;';
       const labelRow = `<tr><td colspan="6" style="${borderStyle}padding-top:10px;padding-bottom:2px;font-weight:bold;font-size:13px;color:#888;">Meal ${m + 1}</td></tr>`;
       if (entries.length === 0) {
-        return labelRow + `<tr><td colspan="6" style="color:#aaa;padding-bottom:8px;">—</td></tr>`;
+        return labelRow + `<tr><td colspan="6" style="color:#aaa;padding-bottom:8px;">-</td></tr>`;
       }
       const foodRows = entries.map(entry => {
         const recipe = getRecipe(entry.recipeId);
@@ -740,15 +759,35 @@ function generatePrintView() {
     const ingRows = recipe.ingredients.map(ing => {
       const ingredient = INGREDIENTS[ing.id];
       if (!ingredient) return '';
-      const totalAmount = Math.round(ing.amount * totalMultiplier);
+      const rawTotal = ing.amount * totalMultiplier;
+      const preppedMultiplier = ingredient.preppedMultiplier ?? 1;
+      const preppedTotal = rawTotal * preppedMultiplier;
+
+      const hasPreppedTransformation = preppedMultiplier !== 1;
+      
       let perPortionCell;
       if (perPortionWeightLabel === 'varies') {
-        const weights = uniqueMultipliers.map(m => `${fmtNum(ing.amount * m)}${ingredient.unit}`).join(' / ');
+        const weights = uniqueMultipliers.map(m => {
+          const rawPortion = ing.amount * m;
+          const preppedPortion = rawPortion * preppedMultiplier;
+          return hasPreppedTransformation
+            ? `${Math.round(preppedPortion)}${ingredient.unit} cooked`
+            : `${Math.round(rawPortion)}${ingredient.unit}`;
+        }).join(' / ');
         perPortionCell = weights;
       } else {
-        perPortionCell = `${fmtNum(ing.amount * uniqueMultipliers[0])}${ingredient.unit}`;
+        const rawPortion = ing.amount * uniqueMultipliers[0];
+        const preppedPortion = rawPortion * preppedMultiplier;
+        perPortionCell = hasPreppedTransformation
+          ? `${Math.round(preppedPortion)}${ingredient.unit} cooked`
+          : `${Math.round(rawPortion)}${ingredient.unit}`;
       }
-      return `<tr><td>${ingredient.name}</td><td>${totalAmount} ${ingredient.unit}</td><td style="color:#555">${perPortionCell}</td></tr>`;
+      
+      const totalAmountDisplay = hasPreppedTransformation
+        ? `${Math.round(rawTotal)}${ingredient.unit} raw`
+        : `${Math.round(rawTotal)}${ingredient.unit}`;
+      
+      return `<tr><td>${ingredient.name}</td><td>${totalAmountDisplay}</td><td style="color:#555">${perPortionCell}</td></tr>`;
     }).join('');
 
     const totalWeight = Math.round(recipe.servingSize * totalMultiplier);
@@ -832,25 +871,25 @@ let editingIngredients = []; // { id, amount, originalAmount }
 function openEditModal(recipeId) {
   const baseRecipe = ALL_RECIPES.find(r => r.id === recipeId);
   if (!baseRecipe) return;
-  
+
   const currentRecipe = getRecipe(recipeId);
   editingRecipeId = recipeId;
-  
+
   // Clone ingredients, storing original amount for slider range calculation
   editingIngredients = currentRecipe.ingredients.map(ing => ({
     id: ing.id,
     amount: ing.amount,
     originalAmount: baseRecipe.ingredients.find(bi => bi.id === ing.id)?.amount || ing.amount
   }));
-  
+
   const modal = document.getElementById('edit-modal');
   document.getElementById('edit-recipe-name').textContent = currentRecipe.name;
   document.getElementById('edit-recipe-desc').textContent = `Original serving size: ${currentRecipe.servingSize}g`;
-  
+
   const modified = isRecipeModified(recipeId);
   document.getElementById('edit-modified-badge').classList.toggle('hidden', !modified);
   document.getElementById('edit-reset-btn').classList.toggle('hidden', !modified);
-  
+
   renderEditIngredients();
   updateEditStats();
   modal.showModal();
@@ -859,11 +898,11 @@ function openEditModal(recipeId) {
 function renderEditIngredients() {
   const container = document.getElementById('edit-ingredients');
   container.innerHTML = '';
-  
+
   for (const ing of editingIngredients) {
     const ingredient = INGREDIENTS[ing.id];
     if (!ingredient) continue;
-    
+
     const maxAmount = ing.originalAmount * 2;
     const row = document.createElement('div');
     row.className = 'edit-row';
@@ -893,10 +932,10 @@ function renderEditIngredients() {
         </div>
       </div>
     `;
-    
+
     const slider = row.querySelector('.ingredient-slider');
     const input = row.querySelector('.ingredient-input');
-    
+
     // Slider -> input sync
     slider.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);
@@ -906,7 +945,7 @@ function renderEditIngredients() {
       updateEditStats();
       onIngredientChange();
     });
-    
+
     // Input -> slider sync
     input.addEventListener('input', (e) => {
       let val = parseFloat(e.target.value) || 0;
@@ -917,7 +956,7 @@ function renderEditIngredients() {
       updateEditStats();
       onIngredientChange();
     });
-    
+
     container.appendChild(row);
   }
 }
@@ -929,45 +968,54 @@ function updateEditStats() {
     ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount })),
     servingSize: 0 // will be calculated from ingredients
   };
-  
+
   // Calculate total weight from ingredients
-  let totalWeight = 0;
+  let totalRawWeight = 0;
+  let totalPreppedWeight = 0;
   for (const ing of editingIngredients) {
     const ingredient = INGREDIENTS[ing.id];
     if (ingredient) {
-      totalWeight += ing.amount;
+      const rawAmount = ing.amount;
+      const preppedMultiplier = ingredient.preppedMultiplier ?? 1;
+      totalRawWeight += rawAmount;
+      totalPreppedWeight += rawAmount * preppedMultiplier;
     }
   }
-  tempRecipe.servingSize = totalWeight;
-  
+  tempRecipe.servingSize = totalRawWeight;
+
   const macros = calculateRecipeMacros(tempRecipe);
-  
+
   document.getElementById('edit-cals').textContent = fmtNum(macros.calories);
   document.getElementById('edit-protein').textContent = fmtNum(macros.protein) + 'g';
   document.getElementById('edit-carbs').textContent = fmtNum(macros.carbs) + 'g';
   document.getElementById('edit-fat').textContent = fmtNum(macros.fat) + 'g';
-  document.getElementById('edit-weight').textContent = Math.round(totalWeight) + 'g';
+
+  // Show prepped weight with raw in tooltip
+  const weightDisplay = totalPreppedWeight !== totalRawWeight && totalRawWeight > 0
+    ? `${Math.round(totalPreppedWeight)}g (${Math.round(totalRawWeight)}g raw)`
+    : `${Math.round(totalRawWeight)}g`;
+  document.getElementById('edit-weight').textContent = weightDisplay;
   document.getElementById('edit-price').textContent = fmtNum(macros.price, true);
 }
 
 function saveEditedRecipe() {
   const baseRecipe = ALL_RECIPES.find(r => r.id === editingRecipeId);
   if (!baseRecipe) return;
-  
+
   // Calculate new serving size from ingredients
   let totalWeight = 0;
   for (const ing of editingIngredients) {
     totalWeight += ing.amount;
   }
-  
+
   const editedRecipe = {
     ...baseRecipe,
     ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount })),
     servingSize: Math.round(totalWeight)
   };
-  
+
   saveCustomRecipe(editedRecipe);
-  
+
   // Refresh UI to show changes across the app
   renderRecipeList();
   renderMealGrid();
@@ -977,14 +1025,14 @@ function saveEditedRecipe() {
 function resetRecipeToDefault() {
   if (!editingRecipeId) return;
   if (!confirm('Revert this recipe to its default ingredients?')) return;
-  
+
   deleteCustomRecipe(editingRecipeId);
-  
+
   // Refresh UI
   renderRecipeList();
   renderMealGrid();
   updateSummary();
-  
+
   document.getElementById('edit-modal').close();
 }
 

@@ -7,19 +7,22 @@ const INGREDIENTS = {
     name: "Chicken breast",
     macrosPer100g: { calories: 165, protein: 31, carbs: 0, fat: 3.6 },
     pricePerUnit: 0.012,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 0.75
   },
   "ground-beef-90": {
     name: "Ground beef (90% lean)",
     macrosPer100g: { calories: 176, protein: 20, carbs: 0, fat: 10 },
     pricePerUnit: 0.011,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 0.85
   },
   "salmon-fillet": {
     name: "Salmon fillet",
     macrosPer100g: { calories: 208, protein: 20, carbs: 0, fat: 13 },
     pricePerUnit: 0.022,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 0.85
   },
   "eggs": {
     name: "Eggs",
@@ -37,39 +40,46 @@ const INGREDIENTS = {
     name: "Shrimp",
     macrosPer100g: { calories: 99, protein: 24, carbs: 0.2, fat: 0.3 },
     pricePerUnit: 0.018,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 0.9
   },
+
 
   // Carbs
   "white-rice-dry": {
     name: "White rice (dry)",
     macrosPer100g: { calories: 365, protein: 7, carbs: 80, fat: 0.6 },
     pricePerUnit: 0.003,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 3.0
   },
   "brown-rice-dry": {
     name: "Brown rice (dry)",
     macrosPer100g: { calories: 362, protein: 7.5, carbs: 76, fat: 2.7 },
     pricePerUnit: 0.004,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 2.5
   },
   "pasta-dry": {
     name: "Pasta (dry)",
     macrosPer100g: { calories: 371, protein: 13, carbs: 75, fat: 1.5 },
     pricePerUnit: 0.002,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 2.0
   },
   "sweet-potato": {
     name: "Sweet potato",
     macrosPer100g: { calories: 86, protein: 1.6, carbs: 20, fat: 0.1 },
     pricePerUnit: 0.002,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 0.9
   },
   "quinoa-dry": {
     name: "Quinoa (dry)",
     macrosPer100g: { calories: 368, protein: 14, carbs: 64, fat: 6 },
     pricePerUnit: 0.007,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 2.7
   },
   "bread-whole-wheat": {
     name: "Whole wheat bread",
@@ -83,7 +93,8 @@ const INGREDIENTS = {
     name: "Broccoli",
     macrosPer100g: { calories: 34, protein: 2.8, carbs: 7, fat: 0.4 },
     pricePerUnit: 0.004,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 0.95
   },
   "spinach": {
     name: "Spinach",
@@ -113,7 +124,8 @@ const INGREDIENTS = {
     name: "Mixed vegetables",
     macrosPer100g: { calories: 48, protein: 2.5, carbs: 8, fat: 0.5 },
     pricePerUnit: 0.003,
-    unit: "g"
+    unit: "g",
+    preppedMultiplier: 0.95
   },
 
   // Fats & Sauces

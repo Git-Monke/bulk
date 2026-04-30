@@ -503,6 +503,17 @@ input[type=number] {
   text-align: right;
 }
 
+.weight-display {
+  font-size: 10.5px;
+}
+
+/* Print styles for prepped notes */
+.note {
+  font-size: 11px;
+  color: var(--c-muted);
+  font-weight: normal;
+}
+
 /* ============================================================
    Modern slider
    ============================================================ */
