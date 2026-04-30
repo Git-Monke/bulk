@@ -179,19 +179,35 @@ const INGREDIENTS = {
     name: "Whole milk",
     macrosPer100g: { calories: 61, protein: 3.2, carbs: 4.8, fat: 3.3 },
     pricePerUnit: 0.001,
-    unit: "ml"
+    unit: "ml",
+    isRecipe: true,
+    servingSize: 300,
+    category: "drink"
   },
   "orange-juice": {
     name: "Orange juice",
     macrosPer100g: { calories: 45, protein: 0.7, carbs: 10, fat: 0.2 },
     pricePerUnit: 0.002,
-    unit: "ml"
+    unit: "ml",
+    isRecipe: true,
+    servingSize: 250,
+    category: "drink"
   },
   "whey-protein-powder": {
     name: "Whey protein powder",
     macrosPer100g: { calories: 380, protein: 80, carbs: 7, fat: 4 },
     pricePerUnit: 0.04,
     unit: "g"
+  },
+  // Snacks
+  "chewy-granola-bar": {
+    name: "Kirkland Granola Bar",
+    macrosPer100g: { calories: 417, protein: 4.2, carbs: 75, fat: 12.5 },
+    pricePerUnit: 0.00625,
+    unit: "g",
+    isRecipe: true,
+    servingSize: 24,
+    category: "snack"
   }
 };
 
@@ -299,29 +315,7 @@ const RECIPES = [
     prepNotes: "Cook oats. Scramble eggs. Slice banana. Layer in container: oats, yogurt, eggs, banana, peanut butter."
   },
 
-  // Drinks
-  {
-    id: "whole-milk-glass",
-    category: "drink",
-    name: "Whole Milk",
-    servingSize: 300,
-    displayUnit: "weight",
-    ingredients: [
-      { id: "whole-milk", amount: 300 }
-    ],
-    prepNotes: "Pour and serve cold."
-  },
-  {
-    id: "orange-juice-glass",
-    category: "drink",
-    name: "Orange Juice",
-    servingSize: 250,
-    displayUnit: "weight",
-    ingredients: [
-      { id: "orange-juice", amount: 250 }
-    ],
-    prepNotes: "Pour and serve cold."
-  },
+  // Drinks (multi-ingredient recipes only)
   {
     id: "protein-shake",
     category: "drink",
@@ -335,3 +329,26 @@ const RECIPES = [
     prepNotes: "Add 1 scoop (30g) whey protein to 240ml whole milk. Shake or blend until smooth."
   }
 ];
+
+// Generate recipes from ingredients marked with isRecipe: true
+function generateRecipesFromIngredients() {
+  const generatedRecipes = [];
+  
+  for (const [ingId, ingredient] of Object.entries(INGREDIENTS)) {
+    if (ingredient.isRecipe) {
+      generatedRecipes.push({
+        id: ingId,
+        category: ingredient.category || "meal",
+        name: ingredient.name,
+        servingSize: ingredient.servingSize,
+        ingredients: [{ id: ingId, amount: ingredient.servingSize }]
+        // prepNotes omitted for single-ingredient recipes
+      });
+    }
+  }
+  
+  return generatedRecipes;
+}
+
+// Merge generated recipes with base recipes
+const ALL_RECIPES = [...RECIPES, ...generateRecipesFromIngredients()];

@@ -98,7 +98,7 @@ function deleteCustomRecipe(recipeId) {
 // Get recipe merged with custom overrides
 function getRecipe(recipeId) {
   const custom = getCustomRecipe(recipeId);
-  const base = RECIPES.find(r => r.id === recipeId);
+  const base = ALL_RECIPES.find(r => r.id === recipeId);
   return custom || base;
 }
 
@@ -229,7 +229,7 @@ function renderRecipeList() {
   container.innerHTML = '';
 
   const activeCategory = document.getElementById('recipe-category').value;
-  const filtered = RECIPES.filter(r => r.category === activeCategory);
+  const filtered = ALL_RECIPES.filter(r => r.category === activeCategory);
 
   if (filtered.length === 0) {
     container.innerHTML = '<p class="empty-line">No recipes in this category yet.</p>';
@@ -550,7 +550,7 @@ function generatePrintView() {
     for (let m = 0; m < mealsPerDay; m++) {
       const entries = gridState.get(stateKey(v, m)) || [];
       for (const entry of entries) {
-        const recipe = RECIPES.find(r => r.id === entry.recipeId);
+        const recipe = ALL_RECIPES.find(r => r.id === entry.recipeId);
         if (!recipe) continue;
         const macros = calculateRecipeMacros(recipe, entry.multiplier);
         weekly.calories += macros.calories * occurrences[v];
@@ -725,10 +725,10 @@ function generatePrintView() {
       ${dailyScheduleBlocks || '<p>No meals planned yet.</p>'}
     </section>`;
 
-  // Section 4: Recipe prep guide
+  // Section 4: Recipe prep guide (only recipes WITH prep notes)
   const recipeGuideBlocks = [...recipeTotals.entries()].map(([recipeId, rt]) => {
     const recipe = getRecipe(recipeId);
-    if (!recipe) return '';
+    if (!recipe || !recipe.prepNotes) return '';
     const { totalMultiplier, portions, perPortionMultipliers } = rt;
 
     // Determine per-portion weight label: if all portions have same multiplier, show one value; otherwise show range
@@ -773,7 +773,7 @@ function generatePrintView() {
   const recipeSection = `
     <section class="section">
       <h2>Meal Prep Guide</h2>
-      ${recipeGuideBlocks || '<p>No recipes used.</p>'}
+      ${recipeGuideBlocks || '<p>No recipes with prep notes in this plan.</p>'}
     </section>`;
 
   // --- Compose full document ---
@@ -830,7 +830,7 @@ let editingRecipeId = null;
 let editingIngredients = []; // { id, amount, originalAmount }
 
 function openEditModal(recipeId) {
-  const baseRecipe = RECIPES.find(r => r.id === recipeId);
+  const baseRecipe = ALL_RECIPES.find(r => r.id === recipeId);
   if (!baseRecipe) return;
   
   const currentRecipe = getRecipe(recipeId);
@@ -951,7 +951,7 @@ function updateEditStats() {
 }
 
 function saveEditedRecipe() {
-  const baseRecipe = RECIPES.find(r => r.id === editingRecipeId);
+  const baseRecipe = ALL_RECIPES.find(r => r.id === editingRecipeId);
   if (!baseRecipe) return;
   
   // Calculate new serving size from ingredients
