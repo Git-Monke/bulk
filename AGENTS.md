@@ -6,8 +6,13 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 
 ### Stack
 - Single `index.html` — no build step, CDN-only (DaisyUI v4, Tailwind, SortableJS)
-- `src/data.js` — ingredients + recipes databases
-- `src/main.js` — all UI rendering, state management, drag-and-drop logic
+- `src/data.js` — ingredients + recipes databases (exports `INGREDIENTS`, `ALL_RECIPES`)
+- `src/state.js` — grid state management, storage operations
+- `src/calculations.js` — macro calculations, formatting, data access utilities
+- `src/recipe-ui.js` — recipe list rendering and edit modal
+- `src/grid-ui.js` — meal grid rendering and summary calculations
+- `src/print.js` — print view generation
+- `src/main.js` — event wiring and initialization (thin glue)
 - `css/style.css` — reserved for custom styles (currently unused)
 
 ### Data Model
@@ -33,7 +38,7 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 
 ---
 
-### State Model (`src/main.js`)
+### State Model (`src/state.js`)
 
 **`gridState`** — `Map<string, Array<{ entryId, recipeId, multiplier }>>`
 
@@ -100,10 +105,12 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 - Updates: summary-calories, summary-protein, summary-carbs, summary-fat, cost-per-day, cost-per-week, variant-breakdown
 
 ### Input Wiring
-- `input-days` — fires `saveToStorage()` then `updateSummary()` (no grid rebuild needed)
-- `input-meals`, `input-variants` — fire `saveToStorage()` then `renderMealGrid()` which calls `updateSummary()` at the end
+- `input-days` — fires `renderMealGrid()` then `updateSummary()` (no grid rebuild needed)
+- `input-meals`, `input-variants` — fires `renderMealGrid()` which calls `updateSummary()` at the end
 - Print button — calls `generatePrintView()`
 - Clear button (`#btn-clear`) — confirms, clears `gridState`, resets `nextEntryId`, calls `clearStorage()`, re-renders grid
+
+Note: Storage operations are now called automatically on mutations via `state.js`. The `main.js` file contains only event listener wiring and initialization.
 
 ### Print View (`generatePrintView`)
 Opens a new browser window with a clean, print-ready HTML document (no app chrome). The document has three sections:
@@ -128,11 +135,16 @@ All plan state is saved to `localStorage` under the key `bulk-meal-planner-v1` o
 }
 ```
 
-- `saveToStorage()` — serialises `gridState` (Map → plain object via `Object.fromEntries`) and the three input values, writes to `localStorage`.
-- `loadFromStorage()` — reads and JSON-parses; returns `null` on any error (missing key, malformed JSON).
-- `clearStorage()` — removes the key.
-- On `DOMContentLoaded`, `loadFromStorage()` is called first; if data exists, inputs and `gridState` are restored before `renderMealGrid()` runs.
+- `saveToStorage()` (in `calculations.js`) — serialises `gridState` (Map → plain object via `Object.fromEntries`) and the three input values, writes to `localStorage`.
+- `loadFromStorage()` (in `calculations.js`) — reads and JSON-parses; returns `null` on any error (missing key, malformed JSON).
+- `clearStorage()` (in `calculations.js`) — removes the key.
+- On `DOMContentLoaded`, `initGridFromStorage()` (in `grid-ui.js`) is called first; if data exists, inputs and `gridState` are restored before `renderMealGrid()` runs.
 - **Storage key versioning**: if the data shape ever changes in a breaking way, increment the version suffix (`-v2`, etc.) so old data is silently ignored rather than causing a parse error.
+
+**Custom Recipe Storage** (recipes with user modifications):
+- Stored separately under key `bulk-meal-planner-recipes`
+- `saveCustomRecipe()`, `getCustomRecipe()`, `deleteCustomRecipe()` in `calculations.js`
+- `isRecipeModified()` checks if a recipe has been customized
 
 ### Number Formatting (`fmtNum`)
 - `fmtNum(num)` — 2 significant figures (e.g. 321 → "320", 1.5 → "1.5")
@@ -201,10 +213,31 @@ This automatically creates a recipe with:
 
 ---
 
+## File Architecture
+
+```
+src/
+├── data.js              # INGREDIENTS, ALL_RECIPES, RECIPES (ES module exports)
+├── state.js             # gridState Map, entry management, persistence helpers
+├── calculations.js      # calculateRecipeMacros, fmtNum, computeOccurrences, storage
+├── recipe-ui.js         # renderRecipeList, edit modal functions
+├── grid-ui.js           # renderMealGrid, buildSlotCard, updateSummary
+├── print.js             # generatePrintView
+└── main.js              # Event wiring + initialization (thin glue)
+```
+
+**Module Dependencies:**
+- `main.js` imports: state, calculations, recipe-ui, grid-ui, print
+- `grid-ui.js` imports: state, calculations, data
+- `recipe-ui.js` imports: calculations, data (no circular imports - uses callback pattern)
+- `print.js` imports: state, calculations, data
+- `calculations.js` imports: data
+
 ## Known Gaps / TODO
 
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **Mobile not optimized** — desktop-first per SPEC
+- **ES modules required** — all scripts now use ES module imports/exports, requires modern browser
 
 ## Print View Behavior
 

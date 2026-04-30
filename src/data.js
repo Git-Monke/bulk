@@ -345,7 +345,7 @@ const RECIPES = [
 // Generate recipes from ingredients marked with isRecipe: true
 function generateRecipesFromIngredients() {
   const generatedRecipes = [];
-  
+
   for (const [ingId, ingredient] of Object.entries(INGREDIENTS)) {
     if (ingredient.isRecipe) {
       generatedRecipes.push({
@@ -358,9 +358,12 @@ function generateRecipesFromIngredients() {
       });
     }
   }
-  
+
   return generatedRecipes;
 }
 
 // Merge generated recipes with base recipes
 const ALL_RECIPES = [...RECIPES, ...generateRecipesFromIngredients()];
+
+export const CUSTOM_RECIPES_KEY = 'bulk-meal-planner-recipes';
+export { INGREDIENTS, RECIPES, ALL_RECIPES };
