@@ -4,10 +4,18 @@
 //
 // Pure utility functions for macro calculations, formatting, and data access.
 
-import { INGREDIENTS, ALL_RECIPES, CUSTOM_RECIPES_KEY, setLoadCustomRecipesFn, addCustomRecipeToList } from './data.js';
+import {
+  INGREDIENTS,
+  ALL_RECIPES,
+  CUSTOM_RECIPES_KEY,
+  CUSTOM_INGREDIENTS_KEY,
+  setLoadCustomRecipesFn,
+  setLoadCustomIngredientsFn
+} from './data.js';
 
-// Set up the callback so data.js can call our loadCustomRecipes function
+// Set up the callbacks so data.js can call our loaders
 setLoadCustomRecipesFn(loadCustomRecipes);
+setLoadCustomIngredientsFn(loadCustomIngredients);
 
 // -------------------------------------------
 // MACRO CALCULATIONS
@@ -40,6 +48,28 @@ export function calculateRecipeMacros(recipe, multiplier = 1) {
   }
 
   return total;
+}
+
+// Stats for an ingredient at its display serving size: macros + price.
+// `unit` is the ingredient's base unit (g/ml/etc.), and serving math is a
+// flat ratio over 100 — same model as recipe ingredients.
+export function calculateIngredientServing(ingredient) {
+  const serving = ingredient.servingSize ?? 100;
+  const ratio = serving / 100;
+  return {
+    serving,
+    calories: ingredient.macrosPer100g.calories * ratio,
+    protein: ingredient.macrosPer100g.protein * ratio,
+    carbs: ingredient.macrosPer100g.carbs * ratio,
+    fat: ingredient.macrosPer100g.fat * ratio,
+    price: ingredient.pricePerUnit * serving
+  };
+}
+
+// Find every recipe (base + custom + auto-generated) that references an
+// ingredient by id. Used to block deletion of an ingredient still in use.
+export function findRecipesUsingIngredient(ingredientId) {
+  return ALL_RECIPES.filter(r => r.ingredients.some(i => i.id === ingredientId));
 }
 
 export function computeOccurrences(days, variants) {
@@ -105,6 +135,41 @@ export function getRecipe(recipeId) {
 // Check if recipe has custom overrides
 export function isRecipeModified(recipeId) {
   return getCustomRecipe(recipeId) !== null;
+}
+
+// -------------------------------------------
+// CUSTOM INGREDIENT STORAGE
+// -------------------------------------------
+
+function loadCustomIngredients() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_INGREDIENTS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function saveCustomIngredients(customIngredients) {
+  localStorage.setItem(CUSTOM_INGREDIENTS_KEY, JSON.stringify(customIngredients));
+}
+
+export function getCustomIngredient(ingredientId) {
+  const custom = loadCustomIngredients();
+  return custom[ingredientId] || null;
+}
+
+export function saveCustomIngredient(ingredient) {
+  const custom = loadCustomIngredients();
+  custom[ingredient.id] = ingredient;
+  saveCustomIngredients(custom);
+}
+
+export function deleteCustomIngredient(ingredientId) {
+  const custom = loadCustomIngredients();
+  delete custom[ingredientId];
+  saveCustomIngredients(custom);
 }
 
 // -------------------------------------------

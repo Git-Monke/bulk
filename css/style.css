@@ -360,6 +360,116 @@ input[type=number] {
 }
 
 /* ============================================================
+   Ingredient list cards (sidebar) — non-draggable
+   ============================================================ */
+.ingredient-card {
+  position: relative;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 0;
+  padding: 10px 12px;
+  cursor: default;
+  user-select: none;
+  transition: border-color 120ms;
+}
+.ingredient-card:hover {
+  border-color: var(--c-line-strong);
+}
+.ingredient-card.is-custom::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  opacity: 0.5;
+  width: 3px;
+  background: var(--c-accent);
+  border-radius: 0;
+}
+.ingredient-card .recipe-card-edit { opacity: 0; }
+.ingredient-card:hover .recipe-card-edit { opacity: 1; }
+.ingredient-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--c-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ingredient-card-meta .stat-num { color: var(--c-text); font-weight: 600; }
+.ingredient-card-meta .recipe-card-price { margin-top: 0; }
+
+/* ============================================================
+   Ingredient modal
+   ============================================================ */
+.ing-field { display: flex; flex-direction: column; gap: 4px; }
+.ing-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+.ing-help {
+  font-size: 11.5px;
+  color: var(--c-faint);
+  margin-top: 2px;
+}
+.ing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ing-mode-toggle {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+  align-items: center;
+}
+.ing-mode-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.ing-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ing-error {
+  background: var(--c-warm-soft, #fef3c7);
+  color: var(--c-warm, #b45309);
+  border: 1px solid currentColor;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.ing-category-wrap {
+  position: relative;
+}
+.ing-suggest {
+  position: absolute;
+  left: 0; right: 0; top: 100%;
+  z-index: 20;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+.ing-suggest-item {
+  padding: 6px 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.ing-suggest-item:hover {
+  background: var(--c-inset);
+}
+
+/* ============================================================
    Main grid area / day columns / meal slots
    ============================================================ */
 .main-area {

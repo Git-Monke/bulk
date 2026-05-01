@@ -19,11 +19,12 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 
 **INGREDIENTS** (`src/data.js`) — flat lookup object keyed by string ID:
 - `macrosPer100g`: `{ calories, protein, carbs, fat }`
-- `pricePerUnit`: cost per gram/ml
-- `unit`: "g" or "ml"
-- `isRecipe` (optional): if `true`, auto-generates a single-ingredient recipe at runtime
-- `servingSize` (optional): required when `isRecipe: true`, defines the serving size for the generated recipe
-- `category` (optional): determines which category the auto-generated recipe appears in
+- `pricePerUnit`: cost per `unit`
+- `unit`: free text (e.g. "g", "ml", "slice", "whole")
+- `servingSize`: amount in `unit` that the ingredient card displays (defaults to 100 for base ingredients)
+- `isRecipe` (optional): if `true`, auto-generates a single-ingredient recipe at runtime sized to `servingSize`
+- `category` (optional): set on the auto-generated recipe; required when `isRecipe: true`
+- `custom` (optional): present (and `true`) only on user-created ingredients loaded from `localStorage` — used to gate edit/delete UI
 
 **ALL_RECIPES** (`src/data.js`) — merged array of base recipes + auto-generated single-ingredient recipes:
 - `id`: unique string identifier
@@ -147,15 +148,26 @@ All plan state is saved to `localStorage` under the key `bulk-meal-planner-v1` o
 - `isRecipeModified()` checks if a recipe has been customized
 
 **Custom Recipe Creation & Editing** (via edit modal):
-- Users can create new recipes via `+ New Recipe` button in sidebar
+- Users can create new recipes via the `+ New Recipe` button in the sidebar (button label swaps with the active sidebar view)
 - Users can edit existing recipes via the pencil icon on recipe cards
 - Modal allows: editing title, serving size, adding/removing ingredients, adjusting amounts
-- Adding ingredients opens a search typeahead that filters `INGREDIENTS` by name
+- Adding ingredients opens a search typeahead that filters `INGREDIENTS` by name (custom ingredients included)
 - New recipes get auto-generated IDs (slugified title + timestamp)
 - New recipes are pushed to `ALL_RECIPES` array at runtime and persisted to custom storage
 - Delete button appears only for custom/modified recipes (not base recipes)
 - Revert button restores original base recipe by deleting custom override
 - Recipe changes trigger `onRecipeModifiedCallback` which refreshes list, grid, and summary
+
+**Custom Ingredient Creation & Editing** (via ingredient modal):
+- Stored under `localStorage` key `bulk-meal-planner-ingredients` as a flat object keyed by id
+- Loaded into `INGREDIENTS` at startup via `mergeCustomIngredientsIntoIngredients()` in `src/data.js`
+- Modal supports both "Per 100g" and "Per serving" macro entry; values are normalized to `macrosPer100g` on save
+- Price entry supports "Per unit" or "Per serving" — normalized to `pricePerUnit` on save
+- Category field is a free-text input with autocomplete suggestions drawn from the live union of recipe + ingredient categories plus defaults `meal`, `drink`, `snack`
+- "Also add as a recipe" checkbox toggles `isRecipe` — adds/removes a single-ingredient recipe in `ALL_RECIPES`
+- **Base ingredients are read-only** — they have no `custom: true` flag, so the ingredient cards omit the edit pencil and the modal cannot be opened for them
+- Delete is blocked when the ingredient is referenced by any non-auto-generated recipe (the modal shows the blocking recipes inline)
+- Ingredient changes trigger `onIngredientChangedCallback` which re-renders the active sidebar, grid, and summary (since recipe macros depend on ingredient data)
 
 ### Number Formatting (`fmtNum`)
 - `fmtNum(num)` — 2 significant figures (e.g. 321 → "320", 1.5 → "1.5")
@@ -163,20 +175,27 @@ All plan state is saved to `localStorage` under the key `bulk-meal-planner-v1` o
 
 ---
 
+## Sidebar View Toggle
+
+The left sidebar has a `#view-toggle` dropdown at the top with two values:
+- `recipes` — shows draggable recipe cards (default). The `#recipes-subheader` (containing the category filter) is visible.
+- `ingredients` — shows non-draggable ingredient cards. The category filter is hidden.
+
+`main.js` owns the toggle wiring (`applyView`) and the `#btn-new-item` click handler — its label swaps between `New Recipe` / `New Ingredient` to match the active view.
+
 ## Recipe Categories
 
-Recipes now have a `category` field. The sidebar shows a dropdown to switch between categories. `renderRecipeList()` reads `document.getElementById('recipe-category').value` and filters `ALL_RECIPES` accordingly.
+Recipes have a `category` field. When the Recipes view is active, a category dropdown filters the list. The dropdown options are populated at runtime by `populateCategoryDropdowns()` (in `recipe-ui.js`) from the union of:
+1. All `category` values present in `ALL_RECIPES`
+2. Defaults: `meal`, `drink`, `snack`
 
-**Current categories:**
-- `"meal"` — standard food recipes (all original recipes)
-- `"drink"` — drinks (Whole Milk, Orange Juice, Protein Shake)
-- `"snack"` — snacks (single-ingredient granola bar)
+`renderRecipeList()` reads `#recipe-category` and filters `ALL_RECIPES` accordingly. `populateCategoryDropdowns()` runs at init and again whenever recipes or ingredients are modified, so any new category typed by a user during ingredient creation appears in the filter on the next render.
 
-**Auto-generated recipes** — When an ingredient has `isRecipe: true`, the generated recipe inherits the ingredient's `category` field. This keeps single-ingredient items organized with similar recipes.
+**Auto-generated recipes** — When an ingredient has `isRecipe: true`, the generated recipe inherits the ingredient's `category`.
 
-All categories are functionally identical — they use the same drag-and-drop mechanics, gridState, macros calculations, and print view. The category field is purely a UI filter.
+All categories are functionally identical — they share drag-and-drop, gridState, macros, and print view. The category field is purely a UI filter.
 
-**To add a new category:** add a new `<option>` to the `#recipe-category` select in `index.html` and add recipes with the matching `category` string. No JS changes needed.
+**To add a new category:** create a recipe (or a custom ingredient with `isRecipe: true`) using a new `category` string. The dropdown picks it up automatically.
 
 ---
 
@@ -231,7 +250,7 @@ src/
 ├── data.js              # INGREDIENTS, ALL_RECIPES, RECIPES (ES module exports)
 ├── state.js             # gridState Map, entry management, persistence helpers
 ├── calculations.js      # calculateRecipeMacros, fmtNum, computeOccurrences, storage
-├── recipe-ui.js         # renderRecipeList, edit modal functions
+├── recipe-ui.js         # renderRecipeList, renderIngredientList, recipe + ingredient modals
 ├── grid-ui.js           # renderMealGrid, buildSlotCard, updateSummary
 ├── print.js             # generatePrintView
 └── main.js              # Event wiring + initialization (thin glue)

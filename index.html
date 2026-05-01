@@ -108,28 +108,136 @@
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
   </dialog>
 
+  <!-- Ingredient Modal -->
+  <dialog id="ingredient-modal" class="modal">
+    <div class="modal-box max-w-xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center gap-2 mb-4">
+        <input type="text" id="ing-name" class="input input-bordered input-md font-bold text-lg flex-1" placeholder="Ingredient name">
+      </div>
+
+      <div class="flex-1 overflow-y-auto pr-1 space-y-4">
+        <div class="ing-field">
+          <label class="ing-label">Category</label>
+          <div class="ing-category-wrap">
+            <input type="text" id="ing-category" class="input input-bordered input-sm w-full" placeholder="e.g., meal, drink, snack" autocomplete="off">
+            <ul id="ing-category-suggestions" class="ing-suggest hidden"></ul>
+          </div>
+        </div>
+
+        <div class="ing-field">
+          <label class="ing-label">Macros entry mode</label>
+          <div class="ing-mode-toggle">
+            <label><input type="radio" name="ing-macro-mode" value="per100g" checked> Per 100<span id="ing-mode-unit-100">g</span></label>
+            <label><input type="radio" name="ing-macro-mode" value="perServing"> Per serving</label>
+          </div>
+        </div>
+
+        <div class="ing-grid">
+          <div class="ing-field"><label class="ing-label">Calories</label><input type="number" id="ing-calories" class="input input-bordered input-sm w-full" min="0" step="any"></div>
+          <div class="ing-field"><label class="ing-label">Protein (g)</label><input type="number" id="ing-protein" class="input input-bordered input-sm w-full" min="0" step="any"></div>
+          <div class="ing-field"><label class="ing-label">Carbs (g)</label><input type="number" id="ing-carbs" class="input input-bordered input-sm w-full" min="0" step="any"></div>
+          <div class="ing-field"><label class="ing-label">Fat (g)</label><input type="number" id="ing-fat" class="input input-bordered input-sm w-full" min="0" step="any"></div>
+        </div>
+
+        <div class="ing-grid">
+          <div class="ing-field">
+            <label class="ing-label">Unit</label>
+            <input type="text" id="ing-unit" class="input input-bordered input-sm w-full" list="ing-unit-suggestions" placeholder="g">
+            <datalist id="ing-unit-suggestions">
+              <option value="g"></option>
+              <option value="ml"></option>
+              <option value="slice"></option>
+              <option value="whole"></option>
+              <option value="each"></option>
+              <option value="cup"></option>
+              <option value="tbsp"></option>
+              <option value="tsp"></option>
+              <option value="oz"></option>
+              <option value="lb"></option>
+            </datalist>
+          </div>
+          <div class="ing-field">
+            <label class="ing-label">Serving size (<span id="ing-serving-unit">g</span>)</label>
+            <input type="number" id="ing-serving" class="input input-bordered input-sm w-full" min="0" step="any" value="100">
+          </div>
+        </div>
+
+        <div class="ing-field">
+          <label class="ing-label">Price entry mode</label>
+          <div class="ing-mode-toggle">
+            <label><input type="radio" name="ing-price-mode" value="perUnit" checked> Per unit</label>
+            <label><input type="radio" name="ing-price-mode" value="perServing"> Per serving</label>
+            <label><input type="radio" name="ing-price-mode" value="perPackage"> Per package</label>
+          </div>
+        </div>
+
+        <div class="ing-grid">
+          <div class="ing-field">
+            <label class="ing-label">Price (<span id="ing-price-mode-label">per unit</span>)</label>
+            <input type="number" id="ing-price" class="input input-bordered input-sm w-full" min="0" step="any">
+          </div>
+          <div class="ing-field hidden" id="ing-package-wrap">
+            <label class="ing-label">Package size (<span id="ing-package-unit">g</span>)</label>
+            <input type="number" id="ing-package-size" class="input input-bordered input-sm w-full" min="0" step="any">
+          </div>
+        </div>
+
+        <div class="ing-field">
+          <label class="ing-checkbox">
+            <input type="checkbox" id="ing-is-recipe">
+            Also add as a recipe
+          </label>
+          <p class="ing-help">When checked, this ingredient also appears in the Recipes list as a single-ingredient recipe (one serving).</p>
+        </div>
+
+        <p id="ing-error" class="ing-error hidden"></p>
+      </div>
+
+      <div class="sticky bottom-0 bg-base-100 border-t border-base-300 pt-3 mt-4">
+        <div class="flex gap-2">
+          <button id="ing-delete-btn" class="btn-soft btn-soft-error hidden">Delete</button>
+          <div class="flex-1"></div>
+          <button id="ing-cancel-btn" class="btn-soft">Cancel</button>
+          <button id="ing-save-btn" class="btn-accent">Save</button>
+        </div>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+
   <!-- Main Layout -->
   <div class="flex h-[calc(100vh-72px)]">
 
-    <!-- Left Sidebar: Recipe List -->
+    <!-- Left Sidebar: Recipe / Ingredient List -->
     <aside class="sidebar sidebar-left">
       <div class="sidebar-header">
-        <h2 class="sidebar-title">Recipes</h2>
-        <select id="recipe-category" class="select-pill">
-          <option value="meal">Meals</option>
-          <option value="drink">Drinks</option>
-          <option value="snack">Snacks</option>
+        <select id="view-toggle" class="select-pill">
+          <option value="recipes">Recipes</option>
+          <option value="ingredients">Ingredients</option>
+        </select>
+      </div>
+      <div id="recipes-subheader" class="mb-3">
+        <select id="recipe-category" class="select-pill w-full">
+          <!-- populated at runtime -->
+        </select>
+      </div>
+      <div id="ingredients-subheader" class="mb-3 hidden">
+        <select id="ingredient-category" class="select-pill w-full">
+          <!-- populated at runtime -->
         </select>
       </div>
       <div id="recipe-list" class="space-y-1.5 flex-1 overflow-y-auto">
         <!-- Recipes will be injected here -->
       </div>
-      <button id="btn-new-recipe" class="btn btn-sm btn-primary w-full mt-3">
+      <div id="ingredient-list" class="space-y-1.5 flex-1 overflow-y-auto hidden">
+        <!-- Ingredients will be injected here -->
+      </div>
+      <button id="btn-new-item" class="btn btn-sm btn-primary w-full mt-3">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        New Recipe
+        <span id="btn-new-item-label">New Recipe</span>
       </button>
     </aside>
 
