@@ -290,7 +290,8 @@ input[type=number] {
 .recipe-card.is-modified::before {
   content: "";
   position: absolute;
-  left: 0; top: 10px; bottom: 10px;
+  left: 0; top: 0px; bottom: 0px;
+  opacity: 0.5;
   width: 3px;
   background: var(--c-warm);
   border-radius: 0;
@@ -454,7 +455,6 @@ input[type=number] {
 }
 .slot-card:hover { background: #ebe9e2; }
 .slot-card.is-modified {
-  border-left: 3px solid var(--c-warm);
   padding-left: 8px;
 }
 .slot-card-head {

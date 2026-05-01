@@ -58,11 +58,15 @@
         <span id="edit-modified-badge" class="badge-modified hidden">Modified</span>
       </div>
       <div class="flex items-center gap-4 mb-4">
-        <label class="flex items-center gap-2 text-sm text-stone-500">
+        <output id="edit-serving-display" class="flex items-center gap-2 text-sm text-stone-500">
           <span>Serving size:</span>
-          <input type="number" id="edit-serving-size" class="input input-bordered input-sm w-24" min="1" value="300">
-          <span>g</span>
-        </label>
+          <span id="edit-serving-value" class="font-mono font-semibold">0g</span>
+          <span class="text-stone-400">(sum of ingredients)</span>
+        </output>
+      </div>
+      <div class="mb-4">
+        <label class="text-sm text-stone-500 block mb-1">Prep notes</label>
+        <textarea id="edit-prep-notes" class="textarea textarea-bordered w-full h-20" placeholder="e.g., Cook chicken to 165°F internal temp, rest 5 min, dice. Combine with rice and sauce while warm."></textarea>
       </div>
 
       <div id="edit-ingredients" class="flex-1 overflow-y-auto space-y-2 pr-2">

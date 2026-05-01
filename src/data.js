@@ -84,8 +84,8 @@ const INGREDIENTS = {
   "bread-whole-wheat": {
     name: "Whole wheat bread",
     macrosPer100g: { calories: 247, protein: 13, carbs: 41, fat: 3.4 },
-    pricePerUnit: 0.005,
-    unit: "g"
+    pricePerUnit: 0.10,
+    unit: "slice"
   },
 
   // Vegetables
@@ -363,7 +363,46 @@ function generateRecipesFromIngredients() {
 }
 
 // Merge generated recipes with base recipes
-const ALL_RECIPES = [...RECIPES, ...generateRecipesFromIngredients()];
+let ALL_RECIPES = [...RECIPES, ...generateRecipesFromIngredients()];
 
-export const CUSTOM_RECIPES_KEY = 'bulk-meal-planner-recipes';
-export { INGREDIENTS, RECIPES, ALL_RECIPES };
+// Getter for ALL_RECIPES so it can be imported directly
+export function getAllRecipes() {
+  return ALL_RECIPES;
+}
+
+// Direct reference to ALL_RECIPES for synchronous access
+export { ALL_RECIPES };
+
+export function addCustomRecipeToList(recipe) {
+  // Check if recipe already exists, if so update it
+  const existingIndex = ALL_RECIPES.findIndex(r => r.id === recipe.id);
+  if (existingIndex >= 0) {
+    ALL_RECIPES[existingIndex] = recipe;
+  } else {
+    ALL_RECIPES.push(recipe);
+  }
+}
+
+export function removeRecipeFromList(recipeId) {
+  const index = ALL_RECIPES.findIndex(r => r.id === recipeId);
+  if (index >= 0) {
+    ALL_RECIPES.splice(index, 1);
+  }
+}
+
+export function loadCustomRecipesIntoAll() {
+  // This must be called after calculations.js is loaded since it depends on loadCustomRecipes
+  const custom = loadCustomRecipesFromStorage();
+  for (const recipe of Object.values(custom)) {
+    addCustomRecipeToList(recipe);
+  }
+}
+
+// Lazy load to avoid circular import - calculations.js will define this
+let loadCustomRecipesFromStorage = () => ({});
+export function setLoadCustomRecipesFn(fn) {
+  loadCustomRecipesFromStorage = fn;
+}
+
+const CUSTOM_RECIPES_KEY = 'bulk-meal-planner-recipes';
+export { INGREDIENTS, RECIPES, CUSTOM_RECIPES_KEY };

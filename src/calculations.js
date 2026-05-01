@@ -4,7 +4,10 @@
 //
 // Pure utility functions for macro calculations, formatting, and data access.
 
-import { INGREDIENTS, ALL_RECIPES, CUSTOM_RECIPES_KEY } from './data.js';
+import { INGREDIENTS, ALL_RECIPES, CUSTOM_RECIPES_KEY, setLoadCustomRecipesFn, addCustomRecipeToList } from './data.js';
+
+// Set up the callback so data.js can call our loadCustomRecipes function
+setLoadCustomRecipesFn(loadCustomRecipes);
 
 // -------------------------------------------
 // MACRO CALCULATIONS

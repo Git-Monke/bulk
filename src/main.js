@@ -8,6 +8,7 @@ import { renderMealGrid, updateSummary, initGridFromStorage } from './grid-ui.js
 import { generatePrintView } from './print.js';
 import { clearGridState } from './state.js';
 import { clearStorage } from './calculations.js';
+import { loadCustomRecipesIntoAll } from './data.js';
 
 // ============================================
 // EVENT LISTENERS
@@ -43,6 +44,9 @@ document.getElementById('btn-clear').addEventListener('click', () => {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Load custom recipes from storage into ALL_RECIPES
+  loadCustomRecipesIntoAll();
+
   // Load saved state from storage
   initGridFromStorage();
 

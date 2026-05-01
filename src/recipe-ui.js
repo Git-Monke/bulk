@@ -15,6 +15,7 @@ import {
   calculateRecipeMacros,
   fmtNum
 } from './calculations.js';
+import { removeRecipeFromList } from './data.js';
 
 let editingRecipeId = null;
 let editingIngredients = [];
@@ -58,7 +59,7 @@ export function renderRecipeList() {
           <path d="M17.586 3.586a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
         </svg>
       </button>
-      <div class="recipe-card-name">${recipe.name}${isModified ? '<span class="badge-modified">Modified</span>' : ''}</div>
+      <div class="recipe-card-name">${recipe.name}</div>
       <div class="recipe-card-stats">
         <span><span class="stat-num">${fmtNum(macros.calories)}</span> kcal</span>
         <span><span class="stat-num">${fmtNum(macros.protein)}g</span> prot</span>
@@ -92,7 +93,7 @@ export function renderRecipeList() {
 export function openEditModal(recipeId) {
   const modal = document.getElementById('edit-modal');
   const nameInput = document.getElementById('edit-recipe-name');
-  const servingInput = document.getElementById('edit-serving-size');
+  const prepNotesInput = document.getElementById('edit-prep-notes');
   const deleteBtn = document.getElementById('edit-delete-btn');
   const resetBtn = document.getElementById('edit-reset-btn');
 
@@ -104,7 +105,7 @@ export function openEditModal(recipeId) {
     isNewRecipe = true;
     editingRecipeId = null;
     nameInput.value = '';
-    servingInput.value = 300;
+    prepNotesInput.value = '';
     editingIngredients = [];
 
     // Pre-fill with first ingredient
@@ -124,7 +125,7 @@ export function openEditModal(recipeId) {
     const currentRecipe = getRecipe(recipeId);
     editingRecipeId = recipeId;
     nameInput.value = currentRecipe.name;
-    servingInput.value = currentRecipe.servingSize;
+    prepNotesInput.value = currentRecipe.prepNotes || '';
 
     // Clone ingredients, storing original amount for slider range calculation
     editingIngredients = currentRecipe.ingredients.map(ing => ({
@@ -248,6 +249,9 @@ function updateEditStats() {
     : `${Math.round(rawWeight)}g`;
   document.getElementById('edit-weight').textContent = weightDisplay;
   document.getElementById('edit-price').textContent = fmtNum(macros.price, true);
+
+  // Update read-only serving size display (always sum of ingredients)
+  document.getElementById('edit-serving-value').textContent = `${Math.round(rawWeight)}g`;
 }
 
 function generateRecipeId(title) {
@@ -261,9 +265,12 @@ function generateRecipeId(title) {
 
 function saveEditedRecipe() {
   const nameInput = document.getElementById('edit-recipe-name');
-  const servingInput = document.getElementById('edit-serving-size');
+  const prepNotesInput = document.getElementById('edit-prep-notes');
   const name = nameInput.value.trim();
-  const servingSize = parseInt(servingInput.value) || 300;
+  const prepNotes = prepNotesInput.value.trim();
+
+  // Serving size is always calculated from ingredients (sum of all amounts)
+  const servingSize = Math.round(editingIngredients.reduce((sum, ing) => sum + ing.amount, 0));
 
   if (!name) {
     alert('Please enter a recipe name.');
@@ -275,6 +282,13 @@ function saveEditedRecipe() {
     return false;
   }
 
+  const recipeData = {
+    name,
+    servingSize,
+    prepNotes,
+    ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount }))
+  };
+
   if (isNewRecipe) {
     // Create new recipe
     const newId = generateRecipeId(name);
@@ -283,10 +297,7 @@ function saveEditedRecipe() {
     const newRecipe = {
       id: newId,
       category: activeCategory,
-      name: name,
-      servingSize: servingSize,
-      ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount })),
-      prepNotes: ''
+      ...recipeData
     };
 
     // Add to ALL_RECIPES array
@@ -306,9 +317,7 @@ function saveEditedRecipe() {
 
     const editedRecipe = {
       ...baseRecipe,
-      name: name,
-      servingSize: servingSize,
-      ingredients: editingIngredients.map(ing => ({ id: ing.id, amount: ing.amount }))
+      ...recipeData
     };
 
     saveCustomRecipe(editedRecipe);
@@ -336,6 +345,7 @@ function deleteRecipe() {
   if (!confirm('Delete this custom recipe? This cannot be undone.')) return;
 
   deleteCustomRecipe(editingRecipeId);
+  removeRecipeFromList(editingRecipeId);
 
   // Refresh UI
   if (onRecipeModifiedCallback) onRecipeModifiedCallback();
@@ -444,8 +454,8 @@ export function initEditModalListeners() {
     const container = document.getElementById('ingredient-search-container');
     const addBtn = document.getElementById('add-ingredient-btn');
     if (!container.classList.contains('hidden') &&
-        !container.contains(e.target) &&
-        !addBtn.contains(e.target)) {
+      !container.contains(e.target) &&
+      !addBtn.contains(e.target)) {
       hideIngredientSearch();
     }
   });
