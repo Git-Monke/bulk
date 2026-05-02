@@ -254,9 +254,7 @@ function updateEditStats() {
   // Show prepped weight with raw in tooltip
   const rawWeight = macros.rawWeight;
   const preppedWeight = macros.preppedWeight;
-  const weightDisplay = preppedWeight !== rawWeight && rawWeight > 0
-    ? `${Math.round(preppedWeight)}g (${Math.round(rawWeight)}g raw)`
-    : `${Math.round(rawWeight)}g`;
+  const weightDisplay = preppedWeight + "g";
   document.getElementById('edit-weight').textContent = weightDisplay;
   document.getElementById('edit-price').textContent = fmtNum(macros.price, true);
 
@@ -633,8 +631,8 @@ function syncIngUnitLabels() {
   document.getElementById('ing-package-unit').textContent = unit;
   document.getElementById('ing-price-mode-label').textContent =
     priceMode === 'perUnit' ? `per ${unit}`
-    : priceMode === 'perServing' ? 'per serving'
-    : 'per package';
+      : priceMode === 'perServing' ? 'per serving'
+        : 'per package';
   document.getElementById('ing-package-wrap').classList.toggle('hidden', priceMode !== 'perPackage');
 }
 
