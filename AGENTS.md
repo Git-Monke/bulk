@@ -268,7 +268,6 @@ src/
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **Mobile not optimized** — desktop-first per SPEC
 - **ES modules required** — all scripts now use ES module imports/exports, requires modern browser
-- **Custom recipes lack prepNotes editing** — prepNotes stays empty, no meal prep section in print for custom recipes
 
 ## Print View Behavior
 
