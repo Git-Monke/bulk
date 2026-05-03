@@ -9,7 +9,8 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 - `src/data.js` — ingredients + recipes databases (exports `INGREDIENTS`, `ALL_RECIPES`)
 - `src/state.js` — grid state management, storage operations
 - `src/calculations.js` — macro calculations, formatting, data access utilities
-- `src/recipe-ui.js` — recipe list rendering and edit modal
+- `src/recipe-ui.js` — recipe list rendering and recipe edit modal
+- `src/ingredient-ui.js` — ingredient list rendering, ingredient modal, and category dropdowns
 - `src/grid-ui.js` — meal grid rendering and summary calculations
 - `src/print.js` — print view generation
 - `src/main.js` — event wiring and initialization (thin glue)
@@ -185,7 +186,7 @@ The left sidebar has a `#view-toggle` dropdown at the top with two values:
 
 ## Recipe Categories
 
-Recipes have a `category` field. When the Recipes view is active, a category dropdown filters the list. The dropdown options are populated at runtime by `populateCategoryDropdowns()` (in `recipe-ui.js`) from the union of:
+Recipes have a `category` field. When the Recipes view is active, a category dropdown filters the list. The dropdown options are populated at runtime by `populateCategoryDropdowns()` (in `ingredient-ui.js`) from the union of:
 1. All `category` values present in `ALL_RECIPES`
 2. Defaults: `meal`, `drink`, `snack`
 
@@ -250,16 +251,18 @@ src/
 ├── data.js              # INGREDIENTS, ALL_RECIPES, RECIPES (ES module exports)
 ├── state.js             # gridState Map, entry management, persistence helpers
 ├── calculations.js      # calculateRecipeMacros, fmtNum, computeOccurrences, storage
-├── recipe-ui.js         # renderRecipeList, renderIngredientList, recipe + ingredient modals
+├── recipe-ui.js         # renderRecipeList, recipe edit modal, ingredient search (in-modal)
+├── ingredient-ui.js     # renderIngredientList, ingredient modal, category dropdowns
 ├── grid-ui.js           # renderMealGrid, buildSlotCard, updateSummary
 ├── print.js             # generatePrintView
 └── main.js              # Event wiring + initialization (thin glue)
 ```
 
 **Module Dependencies:**
-- `main.js` imports: state, calculations, recipe-ui, grid-ui, print
+- `main.js` imports: state, calculations, recipe-ui, ingredient-ui, grid-ui, print
 - `grid-ui.js` imports: state, calculations, data
-- `recipe-ui.js` imports: calculations, data (no circular imports - uses callback pattern)
+- `recipe-ui.js` imports: calculations, data (no circular imports — uses callback pattern)
+- `ingredient-ui.js` imports: calculations, data (no circular imports — uses callback pattern)
 - `print.js` imports: state, calculations, data
 - `calculations.js` imports: data
 

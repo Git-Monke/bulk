@@ -5,15 +5,17 @@
 // Import modules
 import {
   renderRecipeList,
-  renderIngredientList,
-  populateCategoryDropdowns,
-  initEditModalListeners,
-  initIngredientModalListeners,
   openEditModal,
-  openIngredientModal,
-  setOnRecipeModifiedCallback,
-  setOnIngredientChangedCallback
+  initEditModalListeners,
+  setOnRecipeModifiedCallback
 } from './recipe-ui.js';
+import {
+  renderIngredientList,
+  openIngredientModal,
+  initIngredientModalListeners,
+  setOnIngredientChangedCallback,
+  populateCategoryDropdowns
+} from './ingredient-ui.js';
 import { renderMealGrid, updateSummary, initGridFromStorage } from './grid-ui.js';
 import { generatePrintView } from './print.js';
 import { clearGridState } from './state.js';
