@@ -1,4 +1,100 @@
 // ============================================================
+// Agent settings state
+// ============================================================
+
+const AGENT_SETTINGS_KEY = 'bulk-meal-planner-agent-settings';
+
+/** @type {{ apiKey: string, model: string }} */
+let agentSettings = { apiKey: '', model: '' };
+
+function loadAgentSettings() {
+  try {
+    const raw = localStorage.getItem(AGENT_SETTINGS_KEY);
+    if (!raw) return { apiKey: '', model: '' };
+    return JSON.parse(raw);
+  } catch {
+    return { apiKey: '', model: '' };
+  }
+}
+
+function saveAgentSettings() {
+  try {
+    localStorage.setItem(AGENT_SETTINGS_KEY, JSON.stringify(agentSettings));
+  } catch {
+    // Silently ignore storage errors
+  }
+}
+
+/**
+ * Populate the model select based on current API key state.
+ */
+function syncModelSelect() {
+  const select = document.getElementById('agent-model-select');
+  const hint = document.getElementById('agent-model-hint');
+  if (!select || !hint) return;
+
+  const hasKey = agentSettings.apiKey.trim().length > 0;
+  select.disabled = !hasKey;
+  hint.textContent = hasKey
+    ? ''
+    : 'Enter an API key above to enable model selection.';
+}
+
+/** @type {boolean} */
+let _settingsInitialized = false;
+
+/**
+ * Wire up the agent settings button and modal.
+ */
+function initAgentSettings() {
+  if (_settingsInitialized) return;
+  _settingsInitialized = true;
+
+  const settingsBtn = document.getElementById('agent-settings-btn');
+  const modal = document.getElementById('agent-settings-modal');
+  const apiKeyInput = document.getElementById('agent-api-key');
+  const modelSelect = document.getElementById('agent-model-select');
+  const cancelBtn = document.getElementById('agent-settings-cancel-btn');
+  const saveBtn = document.getElementById('agent-settings-save-btn');
+
+  if (!modal || !settingsBtn) return;
+
+  // Open modal: restore current settings into the form
+  settingsBtn.addEventListener('click', () => {
+    agentSettings = loadAgentSettings();
+    apiKeyInput.value = agentSettings.apiKey;
+    modelSelect.value = agentSettings.model;
+    syncModelSelect();
+    modal.showModal();
+  });
+
+  // Enable/disable model select as user types the API key
+  apiKeyInput.addEventListener('input', () => {
+    const hasKey = apiKeyInput.value.trim().length > 0;
+    modelSelect.disabled = !hasKey;
+    const hint = document.getElementById('agent-model-hint');
+    if (hint) {
+      hint.textContent = hasKey
+        ? ''
+        : 'Enter an API key above to enable model selection.';
+    }
+  });
+
+  // Cancel: close without saving
+  cancelBtn.addEventListener('click', () => {
+    modal.close();
+  });
+
+  // Save: persist apiKey and model
+  saveBtn.addEventListener('click', () => {
+    agentSettings.apiKey = apiKeyInput.value.trim();
+    agentSettings.model = modelSelect.value;
+    saveAgentSettings();
+    modal.close();
+  });
+}
+
+// ============================================================
 // Conversation state
 // ============================================================
 
@@ -363,6 +459,9 @@ export function addAgentMessage(msg) {
  * Shows an empty placeholder if there is no conversation history.
  */
 export function initAgentView() {
+  // Wire up the settings button and modal (idempotent — safe to call multiple times)
+  initAgentSettings();
+
   conversation = loadConversation();
 
   const container = document.getElementById('agent-messages');
