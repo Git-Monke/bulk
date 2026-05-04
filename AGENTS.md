@@ -258,26 +258,66 @@ src/
 ├── ingredient-ui.js     # renderIngredientList, ingredient modal, category dropdowns
 ├── grid-ui.js           # renderMealGrid, buildSlotCard, updateSummary
 ├── print.js             # generatePrintView
+├── agent-ui.js          # Agent chat: conversation state, localStorage, filler loop, send/stop
 └── main.js              # Event wiring + initialization (thin glue)
 ```
 
 **Module Dependencies:**
-- `main.js` imports: state, calculations, recipe-ui, ingredient-ui, grid-ui, print
+- `main.js` imports: state, calculations, recipe-ui, ingredient-ui, grid-ui, print, agent-ui
 - `grid-ui.js` imports: state, calculations, data
 - `recipe-ui.js` imports: calculations, data (no circular imports — uses callback pattern)
 - `ingredient-ui.js` imports: calculations, data (no circular imports — uses callback pattern)
 - `print.js` imports: state, calculations, data
+- `agent-ui.js` is self-contained (no imports from other app modules)
 - `calculations.js` imports: data
 
 ## Styling
 
 All custom styles are in `css/` and split into seven logical layers: `tokens.css` (DaisyUI theme overrides / CSS custom properties), `base.css` (resets, typography, scrollbars, SortableJS helpers), `layout.css` (app shell regions), four `components-*.css` files (UI elements split by group), and `utilities.css` (empty-state helpers). See `css/style.md` for the full style guide, naming conventions, and import order. To add a new style, find the appropriate file based on its purpose; never add rules to `tokens.css` unless they are new custom properties.
 
-## Known Gaps / TODO
+## Agent Chat
+
+The Agent tab in the left sidebar provides a conversational interface. It is initialized on first switch to the Agent tab (via `initAgentView()` in `main.js`).
+
+### Architecture (`src/agent-ui.js`)
+
+**Conversation state** — a module-level `conversation` array (initially loaded from localStorage). Messages have this shape:
+```javascript
+{ type: 'user' | 'agent' | 'tool_call' | 'tool_cluster', content, timestamp, thinking?, toolName?, params?, result? }
+```
+
+**Storage** — conversation is persisted under `localStorage` key `bulk-meal-planner-conversation`. Every mutation (new message, cancelled thinking) triggers `saveConversation()`. On `initAgentView()`, `loadConversation()` restores the full history.
+
+**Filler agent loop** — `startFillerAgent(userMessage)` is a placeholder that:
+1. Waits 600ms, then appends a `thinking: true` message ("Thinking…") to both state and DOM.
+2. Waits another 1400ms (2s total), removes the thinking DOM node, then appends the placeholder response.
+
+The function returns a task handle `{ cancelled, timeoutId }` stored in `currentTask`. A `cancelAgentTask()` function clears the timeout, sets `cancelled = true`, and removes the thinking node from both DOM and state.
+
+**Send / Stop button** — `#agent-send` toggles between:
+- **Send** (paper plane icon): appends user message, calls `startFillerAgent()`.
+- **Stop** (square icon, warm amber background): calls `cancelAgentTask()`.
+
+Enter key in `#agent-input` also triggers send. Empty messages are ignored.
+
+**Rendering** — `renderAgentMessages(messages)` groups consecutive `tool_call` entries into `tool_cluster` groups, then renders all. `addAgentMessage(msg)` appends a single message. `renderMessage()` handles the `thinking` flag by adding a pulsing ellipsis animation.
+
+### Exports
+
+```javascript
+export function initAgentView()       // Load history, wire up send/stop, show placeholder if empty
+export function renderAgentMessages() // Full re-render (used by initAgentView)
+export function addAgentMessage()     // Append a single message (used by agent loop)
+export function clearAgentConversation() // Clear in-memory state + localStorage (not wired to UI yet)
+```
+
+### Known Gaps / TODO
 
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **Mobile not optimized** — desktop-first per SPEC
 - **ES modules required** — all scripts now use ES module imports/exports, requires modern browser
+- **Agent loop is a placeholder** — `startFillerAgent()` waits 2s and returns a static response. Real agent logic (tool calls, LLM integration) is not yet wired up.
+- **No "Clear chat" button** — `clearAgentConversation()` exists but has no UI trigger yet.
 
 ## Print View Behavior
 
