@@ -300,6 +300,12 @@ The function returns a task handle `{ cancelled, timeoutId }` stored in `current
 
 Enter key in `#agent-input` also triggers send. Empty messages are ignored.
 
+**Settings button** — a gear icon (`#agent-settings-btn`) sits immediately left of the message input, inside the `.agent-input-row`. On click it opens `#agent-settings-modal`, a `<dialog>` driven by DaisyUI. The modal contains:
+- A masked text input (`#agent-api-key`) for the OpenRouter API key.
+- A model dropdown (`#agent-model-select`) populated with a static list of popular OpenRouter models. Disabled until the user types a key.
+- Save persists `{ apiKey, model }` to localStorage under `bulk-meal-planner-agent-settings`. Cancel closes without persisting.
+- Wiring lives in `initAgentSettings()` (in `agent-ui.js`), called from `initAgentView()` with a guard to avoid duplicate event listeners.
+
 **Rendering** — `renderAgentMessages(messages)` groups consecutive `tool_call` entries into `tool_cluster` groups, then renders all. `addAgentMessage(msg)` appends a single message. `renderMessage()` handles the `thinking` flag by adding a pulsing ellipsis animation.
 
 ### Exports
