@@ -332,6 +332,70 @@ input[type=number] {
   max-width: 200px;
 }
 
+/* ============================================================
+   Agent chat
+   ============================================================ */
+.agent-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 4px;
+  min-height: 0;
+}
+
+.agent-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-line);
+  flex-shrink: 0;
+}
+
+.agent-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--c-line);
+  border-radius: 0;
+  background: var(--c-surface);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--c-text);
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.agent-input::placeholder {
+  color: var(--c-faint);
+}
+.agent-input:focus {
+  outline: none;
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
+}
+
+.agent-send-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 0;
+  border: 0;
+  background: var(--c-accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 120ms;
+}
+.agent-send-btn:hover {
+  background: #065f46;
+}
+.agent-send-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 .select-pill {
   height: 30px;
   padding: 0 28px 0 10px;

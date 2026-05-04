@@ -266,18 +266,23 @@
 
       <!-- Agent View: Chat Interface -->
       <div id="agent-view" class="sidebar-content hidden">
-        <div id="agent-placeholder" class="agent-placeholder">
-          <div class="agent-placeholder-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 8V4H8"></path>
-              <rect x="2" y="2" width="20" height="20" rx="5"></rect>
-              <path d="M9 12a2 2 0 1 0 3.535-1.536L14 12l-1.465-1.536A2 2 0 0 0 9 12"></path>
-              <path d="M15 16v2"></path>
-              <path d="M15 12a2 2 0 1 0 3.535-1.536L20 12l-1.465-1.536A2 2 0 0 0 15 12"></path>
+        <!-- Message list -->
+        <div id="agent-messages" class="agent-messages"></div>
+        <!-- Input row -->
+        <div class="agent-input-row">
+          <input
+            type="text"
+            id="agent-input"
+            class="agent-input"
+            placeholder="Ask the agent…"
+            autocomplete="off"
+          >
+          <button id="agent-send" class="agent-send-btn" aria-label="Send">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
-          </div>
-          <h3 class="agent-placeholder-title">AI Agent</h3>
-          <p class="agent-placeholder-sub">Coming soon. The agent will help you build meal plans automatically.</p>
+          </button>
         </div>
       </div>
     </aside>
