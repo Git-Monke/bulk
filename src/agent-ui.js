@@ -1,97 +1,174 @@
-// Sample conversation data with consecutive tool calls
-const SAMPLE_MESSAGES = [
-  {
-    type: 'user',
-    content: 'Help me build a simple counter component with HTML, CSS, and JavaScript.',
-    timestamp: '2026-05-04T10:30:00'
-  },
-  {
-    type: 'agent',
-    content: "I'll build a clean counter component for you. Let me start by creating the HTML structure, then add the styling and interactivity.",
-    timestamp: '2026-05-04T10:30:02'
-  },
-  {
-    type: 'tool_call',
-    toolName: 'write',
-    params: {
-      path: 'counter.html',
-      content: '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>Counter</title>\n  <link rel="stylesheet" href="counter.css">\n</head>\n<body>\n  <div class="counter">\n    <button id="decrement">−</button>\n    <span id="count">0</span>\n    <button id="increment">+</button>\n  </div>\n  <script src="counter.js"><\/script>\n</body>\n</html>'
-    },
-    result: 'File written successfully (247 bytes)',
-    timestamp: '2026-05-04T10:30:03'
-  },
-  {
-    type: 'tool_call',
-    toolName: 'write',
-    params: {
-      path: 'counter.css',
-      content: '.counter {\n  display: flex;\n  align-items: center;\n  gap: 16px;\n  font-family: system-ui;\n}\n\nbutton {\n  width: 40px;\n  height: 40px;\n  border: none;\n  border-radius: 8px;\n  background: #6366f1;\n  color: white;\n  font-size: 24px;\n  cursor: pointer;\n}\n\n#count {\n  font-size: 32px;\n  font-weight: bold;\n  min-width: 60px;\n  text-align: center;\n}'
-    },
-    result: 'File written successfully (312 bytes)',
-    timestamp: '2026-05-04T10:30:04'
-  },
-  {
-    type: 'tool_call',
-    toolName: 'write',
-    params: {
-      path: 'counter.js',
-      content: "const countEl = document.getElementById('count');\nconst incBtn = document.getElementById('increment');\nconst decBtn = document.getElementById('decrement');\n\nlet count = 0;\n\nincBtn.addEventListener('click', () => {\n  count++;\n  countEl.textContent = count;\n});\n\ndecBtn.addEventListener('click', () => {\n  count--;\n  countEl.textContent = count;\n});"
-    },
-    result: 'File written successfully (289 bytes)',
-    timestamp: '2026-05-04T10:30:05'
-  },
-  {
-    type: 'agent',
-    content: "I've created three files for your counter component:\n\n- **counter.html** — the markup with a decrement button, display, and increment button\n- **counter.css** — styles for the flexbox layout and button appearance\n- **counter.js** — the event listeners that update the count\n\nThe component uses a simple increment/decrement pattern with clean visuals. Open `counter.html` in your browser to try it out!",
-    timestamp: '2026-05-04T10:30:06'
-  },
-  {
-    type: 'user',
-    content: 'Can you add a reset button that sets the count back to 0?',
-    timestamp: '2026-05-04T10:31:00'
-  },
-  {
-    type: 'agent',
-    content: "Sure, I'll add a reset button to the component.",
-    timestamp: '2026-05-04T10:31:01'
-  },
-  {
-    type: 'tool_call',
-    toolName: 'read',
-    params: {
-      path: 'counter.html'
-    },
-    result: 'File content retrieved (247 bytes)',
-    timestamp: '2026-05-04T10:31:02'
-  },
-  {
-    type: 'tool_call',
-    toolName: 'edit',
-    params: {
-      path: 'counter.html',
-      oldText: '  <div class="counter">\n    <button id="decrement">−</button>\n    <span id="count">0</span>\n    <button id="increment">+</button>\n  </div>',
-      newText: '  <div class="counter">\n    <button id="decrement">−</button>\n    <span id="count">0</span>\n    <button id="increment">+</button>\n    <button id="reset">Reset</button>\n  </div>'
-    },
-    result: 'File edited successfully',
-    timestamp: '2026-05-04T10:31:03'
-  },
-  {
-    type: 'tool_call',
-    toolName: 'edit',
-    params: {
-      path: 'counter.js',
-      oldText: 'decBtn.addEventListener(\'click\', () => {\n  count--;\n  countEl.textContent = count;\n});',
-      newText: 'decBtn.addEventListener(\'click\', () => {\n  count--;\n  countEl.textContent = count;\n});\n\ndocument.getElementById(\'reset\').addEventListener(\'click\', () => {\n  count = 0;\n  countEl.textContent = count;\n});'
-    },
-    result: 'File edited successfully',
-    timestamp: '2026-05-04T10:31:04'
-  },
-  {
-    type: 'agent',
-    content: "Done! I've added a Reset button to the HTML and wired it up in the JavaScript. Refresh your browser to see it in action.",
-    timestamp: '2026-05-04T10:31:05'
+// ============================================================
+// Conversation state
+// ============================================================
+
+const CONV_STORAGE_KEY = 'bulk-meal-planner-conversation';
+
+/** @type {Array<object>} */
+let conversation = [];
+
+/** @type {object | null} */
+let currentTask = null; // { cancelled: boolean, timeoutId: number }
+
+function now() {
+  return new Date().toISOString();
+}
+
+function loadConversation() {
+  try {
+    const raw = localStorage.getItem(CONV_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
+  } catch {
+    return [];
   }
-];
+}
+
+function saveConversation() {
+  try {
+    localStorage.setItem(CONV_STORAGE_KEY, JSON.stringify(conversation));
+  } catch {
+    // Silently ignore storage errors (e.g., quota exceeded)
+  }
+}
+
+function pushMessage(msg) {
+  conversation.push(msg);
+  saveConversation();
+}
+
+// ============================================================
+// Agent loop (placeholder — no real AI yet)
+// ============================================================
+
+/**
+ * Filler agent: waits 2 seconds then emits a default response.
+ * Returns a cancellation handle with { cancelled, timeoutId }.
+ */
+function startFillerAgent(userMessage) {
+  const task = { cancelled: false, timeoutId: null };
+  currentTask = task;
+
+  // Emit a "thinking" message after a short delay
+  task.timeoutId = setTimeout(() => {
+    if (task.cancelled) return;
+
+    const thinkingMsg = {
+      type: 'agent',
+      content: 'Thinking…',
+      timestamp: now(),
+      thinking: true
+    };
+    pushMessage(thinkingMsg);
+    addAgentMessage(thinkingMsg);
+  }, 600);
+
+  // Emit the actual response after 2 seconds total
+  const responseTimeout = setTimeout(() => {
+    if (task.cancelled) return;
+    currentTask = null;
+
+    // Remove the thinking message from DOM and state
+    const container = document.getElementById('agent-messages');
+    const thinkingEl = container?.querySelector('.agent-msg.thinking');
+    if (thinkingEl) thinkingEl.remove();
+    const last = conversation[conversation.length - 1];
+    if (last && last.thinking) {
+      conversation.pop();
+      saveConversation();
+    }
+
+    const responseMsg = {
+      type: 'agent',
+      content: `I received your message: "${userMessage}". This is a placeholder response — real agent logic is not yet implemented. Type another message to continue the loop.`,
+      timestamp: now()
+    };
+    pushMessage(responseMsg);
+    addAgentMessage(responseMsg);
+    updateSendButton(false);
+  }, 2000);
+
+  task.timeoutId = responseTimeout;
+  return task;
+}
+
+/** Cancel the currently running agent task, if any. */
+function cancelAgentTask() {
+  if (!currentTask) return;
+  currentTask.cancelled = true;
+  clearTimeout(currentTask.timeoutId);
+  currentTask = null;
+
+  // Remove the thinking message from DOM and state
+  const container = document.getElementById('agent-messages');
+  const thinkingEl = container?.querySelector('.agent-msg.thinking');
+  if (thinkingEl) thinkingEl.remove();
+  const last = conversation[conversation.length - 1];
+  if (last && last.thinking) {
+    conversation.pop();
+    saveConversation();
+  }
+
+  updateSendButton(false);
+}
+
+// ============================================================
+// Send button
+// ============================================================
+
+function updateSendButton(running) {
+  const btn = document.getElementById('agent-send');
+  if (!btn) return;
+
+  if (running) {
+    btn.classList.add('agent-send-btn', 'agent-stop-btn');
+    btn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="6" width="12" height="12"></rect>
+      </svg>
+    `;
+    btn.setAttribute('aria-label', 'Stop');
+  } else {
+    btn.classList.remove('agent-stop-btn');
+    btn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    `;
+    btn.setAttribute('aria-label', 'Send');
+  }
+}
+
+function handleSendClick() {
+  if (currentTask) {
+    // Currently running — cancel
+    cancelAgentTask();
+    return;
+  }
+
+  const input = document.getElementById('agent-input');
+  if (!input) return;
+  const content = input.value.trim();
+  if (!content) return;
+
+  input.value = '';
+
+  // Add user message
+  const userMsg = { type: 'user', content, timestamp: now() };
+  pushMessage(userMsg);
+  addAgentMessage(userMsg);
+
+  // Start the filler agent loop
+  updateSendButton(true);
+  startFillerAgent(content);
+}
+
+// ============================================================
+// Message rendering
+// ============================================================
 
 /**
  * Group consecutive tool calls into a single cluster
@@ -176,7 +253,8 @@ function renderToolDetails(tools) {
 }
 
 /**
- * Render a single message
+ * Render a single message.
+ * A `thinking` flag renders the message with a pulsing animation.
  */
 function renderMessage(msg) {
   const time = formatTime(msg.timestamp);
@@ -212,9 +290,10 @@ function renderMessage(msg) {
     .replace(/`(.*?)`/g, '<code>$1</code>')
     .replace(/\n/g, '<br>');
 
+  const bubbleClass = msg.thinking ? 'agent-msg-bubble agent-thinking' : 'agent-msg-bubble';
   return `
-    <div class="agent-msg ${msg.type}">
-      <div class="agent-msg-bubble">
+    <div class="agent-msg ${msg.type}${msg.thinking ? ' thinking' : ''}">
+      <div class="${bubbleClass}">
         <div class="agent-msg-content">${content}</div>
       </div>
     </div>
@@ -243,6 +322,18 @@ export function renderAgentMessages(messages) {
 }
 
 /**
+ * Clear all conversation history from memory and localStorage.
+ * Call this if you add a "clear chat" feature.
+ */
+export function clearAgentConversation() {
+  cancelAgentTask();
+  conversation = [];
+  try {
+    localStorage.removeItem(CONV_STORAGE_KEY);
+  } catch {}
+}
+
+/**
  * Add a single message and scroll
  */
 export function addAgentMessage(msg) {
@@ -268,8 +359,49 @@ export function addAgentMessage(msg) {
 }
 
 /**
- * Initialize agent view with sample data
+ * Initialize agent view: load from localStorage and render.
+ * Shows an empty placeholder if there is no conversation history.
  */
 export function initAgentView() {
-  renderAgentMessages(SAMPLE_MESSAGES);
+  conversation = loadConversation();
+
+  const container = document.getElementById('agent-messages');
+  if (!container) return;
+
+  if (conversation.length === 0) {
+    container.innerHTML = `
+      <div class="agent-placeholder">
+        <div class="agent-placeholder-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 8V4H8"></path>
+            <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+            <path d="M9 12a2 2 0 1 0 3.535-1.536L14 12l-1.465-1.536A2 2 0 0 0 9 12"></path>
+            <path d="M15 16v2"></path>
+            <path d="M15 12a2 2 0 1 0 3.535-1.536L20 12l-1.465-1.536A2 2 0 0 0 15 12"></path>
+          </svg>
+        </div>
+        <div class="agent-placeholder-title">Start a conversation</div>
+        <div class="agent-placeholder-sub">Send a message to begin. The agent will respond with a placeholder until real logic is added.</div>
+      </div>
+    `;
+  } else {
+    renderAgentMessages(conversation);
+  }
+
+  // Wire up send button
+  const btn = document.getElementById('agent-send');
+  if (btn) {
+    btn.addEventListener('click', handleSendClick);
+  }
+
+  // Enter key also sends
+  const input = document.getElementById('agent-input');
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendClick();
+      }
+    });
+  }
 }
