@@ -55,6 +55,32 @@ document.getElementById('btn-clear').addEventListener('click', () => {
 });
 
 // ============================================
+// TOP-LEVEL TABS (Manual <-> Agent)
+// ============================================
+
+let currentTab = 'manual';
+
+function applyTab(tab) {
+  currentTab = tab;
+  const tabManual = document.getElementById('tab-manual');
+  const tabAgent = document.getElementById('tab-agent');
+  const manualView = document.getElementById('manual-view');
+  const agentView = document.getElementById('agent-view');
+
+  if (tab === 'manual') {
+    tabManual.classList.add('active');
+    tabAgent.classList.remove('active');
+    manualView.classList.remove('hidden');
+    agentView.classList.add('hidden');
+  } else {
+    tabManual.classList.remove('active');
+    tabAgent.classList.add('active');
+    manualView.classList.add('hidden');
+    agentView.classList.remove('hidden');
+  }
+}
+
+// ============================================
 // VIEW TOGGLE (Recipes <-> Ingredients)
 // ============================================
 
@@ -112,6 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Modal listeners.
   initEditModalListeners();
   initIngredientModalListeners();
+
+  // Top-level tabs (Manual / Agent).
+  document.getElementById('tab-manual').addEventListener('click', () => {
+    applyTab('manual');
+  });
+  document.getElementById('tab-agent').addEventListener('click', () => {
+    applyTab('agent');
+  });
 
   // Sidebar view toggle.
   document.getElementById('view-toggle').addEventListener('change', (e) => {

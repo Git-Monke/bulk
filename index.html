@@ -207,37 +207,79 @@
   <!-- Main Layout -->
   <div class="flex h-[calc(100vh-72px)]">
 
-    <!-- Left Sidebar: Recipe / Ingredient List -->
+    <!-- Left Sidebar: Manual / Agent Tabs -->
     <aside class="sidebar sidebar-left">
-      <div class="sidebar-header">
-        <select id="view-toggle" class="select-pill">
-          <option value="recipes">Recipes</option>
-          <option value="ingredients">Ingredients</option>
-        </select>
+      <!-- Top Tabs: Manual | Agent -->
+      <div class="sidebar-tabs">
+        <button id="tab-manual" class="sidebar-tab active" data-tab="manual">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+            <path d="M4 13h16"></path>
+            <path d="M5 13a7 7 0 0 1 14 0"></path>
+            <path d="M3 17h18"></path>
+          </svg>
+          Manual
+        </button>
+        <button id="tab-agent" class="sidebar-tab" data-tab="agent">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+            <path d="M12 8V4H8"></path>
+            <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+            <path d="M9 12a2 2 0 1 0 3.535-1.536L14 12l-1.465-1.536A2 2 0 0 0 9 12"></path>
+            <path d="M15 16v2"></path>
+            <path d="M15 12a2 2 0 1 0 3.535-1.536L20 12l-1.465-1.536A2 2 0 0 0 15 12"></path>
+          </svg>
+          Agent
+        </button>
       </div>
-      <div id="recipes-subheader" class="mb-3">
-        <select id="recipe-category" class="select-pill w-full">
-          <!-- populated at runtime -->
-        </select>
+
+      <!-- Manual View: Recipe/Ingredient List -->
+      <div id="manual-view" class="sidebar-content">
+        <div class="sidebar-header">
+          <select id="view-toggle" class="select-pill">
+            <option value="recipes">Recipes</option>
+            <option value="ingredients">Ingredients</option>
+          </select>
+        </div>
+        <div id="recipes-subheader" class="mb-3">
+          <select id="recipe-category" class="select-pill w-full">
+            <!-- populated at runtime -->
+          </select>
+        </div>
+        <div id="ingredients-subheader" class="mb-3 hidden">
+          <select id="ingredient-category" class="select-pill w-full">
+            <!-- populated at runtime -->
+          </select>
+        </div>
+        <div id="recipe-list" class="space-y-1.5 flex-1 overflow-y-auto">
+          <!-- Recipes will be injected here -->
+        </div>
+        <div id="ingredient-list" class="space-y-1.5 flex-1 overflow-y-auto hidden">
+          <!-- Ingredients will be injected here -->
+        </div>
+        <button id="btn-new-item" class="btn btn-sm btn-primary w-full mt-3">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span id="btn-new-item-label">New Recipe</span>
+        </button>
       </div>
-      <div id="ingredients-subheader" class="mb-3 hidden">
-        <select id="ingredient-category" class="select-pill w-full">
-          <!-- populated at runtime -->
-        </select>
+
+      <!-- Agent View: Chat Interface -->
+      <div id="agent-view" class="sidebar-content hidden">
+        <div id="agent-placeholder" class="agent-placeholder">
+          <div class="agent-placeholder-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 8V4H8"></path>
+              <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+              <path d="M9 12a2 2 0 1 0 3.535-1.536L14 12l-1.465-1.536A2 2 0 0 0 9 12"></path>
+              <path d="M15 16v2"></path>
+              <path d="M15 12a2 2 0 1 0 3.535-1.536L20 12l-1.465-1.536A2 2 0 0 0 15 12"></path>
+            </svg>
+          </div>
+          <h3 class="agent-placeholder-title">AI Agent</h3>
+          <p class="agent-placeholder-sub">Coming soon. The agent will help you build meal plans automatically.</p>
+        </div>
       </div>
-      <div id="recipe-list" class="space-y-1.5 flex-1 overflow-y-auto">
-        <!-- Recipes will be injected here -->
-      </div>
-      <div id="ingredient-list" class="space-y-1.5 flex-1 overflow-y-auto hidden">
-        <!-- Ingredients will be injected here -->
-      </div>
-      <button id="btn-new-item" class="btn btn-sm btn-primary w-full mt-3">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        <span id="btn-new-item-label">New Recipe</span>
-      </button>
     </aside>
 
     <!-- Main Grid Area -->
