@@ -354,28 +354,6 @@
     font-style: italic;
 }
 
-.agent-msg.thinking .agent-msg-content::after {
-    content: "";
-    display: inline-block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--c-muted);
-    margin-left: 4px;
-    vertical-align: middle;
-    animation: thinkingPulse 1.2s ease-in-out infinite;
-}
-
-@keyframes thinkingPulse {
-    0%,
-    100% {
-        opacity: 0.3;
-    }
-    50% {
-        opacity: 1;
-    }
-}
-
 .agent-msg-content code {
     font-family: "IBM Plex Mono", ui-monospace, monospace;
     font-size: 11px;

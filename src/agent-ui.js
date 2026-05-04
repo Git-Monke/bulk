@@ -215,7 +215,7 @@ function callOpenRouter(userMessage) {
     if (task.cancelled) return;
     const thinkingMsg = {
       type: 'agent',
-      content: 'Thinking…',
+      content: 'Thinking...',
       timestamp: now(),
       thinking: true
     };
@@ -278,7 +278,10 @@ function callOpenRouter(userMessage) {
               // Update the thinking bubble in place for live streaming feel
               if (thinkingEl) {
                 const bubble = thinkingEl.querySelector('.agent-msg-bubble');
-                if (bubble) bubble.textContent = content || 'Thinking…';
+                if (bubble) bubble.textContent = content || 'Thinking...';
+                if (isAtBottom(container)) {
+                  container.scrollTop = container.scrollHeight;
+                }
               }
             }
           } catch {
@@ -522,7 +525,8 @@ function renderMessage(msg) {
 }
 
 /**
- * Render all messages in the agent view
+ * Render all messages in the agent view.
+ * Scrolls to bottom only if already at the bottom.
  */
 export function renderAgentMessages(messages) {
   const container = document.getElementById('agent-messages');
@@ -538,8 +542,10 @@ export function renderAgentMessages(messages) {
     });
   });
 
-  // Scroll to bottom
-  container.scrollTop = container.scrollHeight;
+  // Scroll to bottom only if already there
+  if (isAtBottom(container)) {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 /**
@@ -555,11 +561,25 @@ export function clearAgentConversation() {
 }
 
 /**
- * Add a single message and scroll
+ * Returns true when the container scroll position is within
+ * `tolerance` pixels of the bottom edge.
+ */
+function isAtBottom(container, tolerance = 80) {
+  return container.scrollHeight - container.scrollTop - container.clientHeight <= tolerance;
+}
+
+/**
+ * Add a single message and scroll (only if already at bottom).
  */
 export function addAgentMessage(msg) {
   const container = document.getElementById('agent-messages');
   if (!container) return;
+
+  // Remove the "Start a conversation" placeholder on the first real message
+  const placeholder = container.querySelector('.agent-placeholder');
+  if (placeholder) placeholder.remove();
+
+  const atBottom = isAtBottom(container);
 
   const grouped = groupToolCalls([msg]);
   grouped.forEach(m => {
@@ -576,7 +596,10 @@ export function addAgentMessage(msg) {
     }
   });
 
-  container.scrollTop = container.scrollHeight;
+  // Only auto-scroll if the user was already at the bottom
+  if (atBottom) {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 /**
