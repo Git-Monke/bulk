@@ -1,4 +1,15 @@
 // ============================================================
+// Feature flags
+// ============================================================
+
+/**
+ * Controls whether conversation history is restored from localStorage
+ * when the agent view is initialized (i.e. on page reload).
+ * Set to true to re-enable history persistence on reload.
+ */
+const AGENT_HISTORY_ON_RELOAD = false;
+
+// ============================================================
 // Agent settings state
 // ============================================================
 
@@ -136,68 +147,23 @@ function pushMessage(msg) {
 }
 
 // ============================================================
-// Agent loop (placeholder — no real AI yet)
+// OpenRouter integration
 // ============================================================
 
-/**
- * Filler agent: waits 2 seconds then emits a default response.
- * Returns a cancellation handle with { cancelled, timeoutId }.
- */
-function startFillerAgent(userMessage) {
-  const task = { cancelled: false, timeoutId: null };
-  currentTask = task;
+/** How many past messages (user + agent) to send as conversation context. */
+const AGENT_CONTEXT_WINDOW = 20;
 
-  // Emit a "thinking" message after a short delay
-  task.timeoutId = setTimeout(() => {
-    if (task.cancelled) return;
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-    const thinkingMsg = {
-      type: 'agent',
-      content: 'Thinking…',
-      timestamp: now(),
-      thinking: true
-    };
-    pushMessage(thinkingMsg);
-    addAgentMessage(thinkingMsg);
-  }, 600);
-
-  // Emit the actual response after 2 seconds total
-  const responseTimeout = setTimeout(() => {
-    if (task.cancelled) return;
-    currentTask = null;
-
-    // Remove the thinking message from DOM and state
-    const container = document.getElementById('agent-messages');
-    const thinkingEl = container?.querySelector('.agent-msg.thinking');
-    if (thinkingEl) thinkingEl.remove();
-    const last = conversation[conversation.length - 1];
-    if (last && last.thinking) {
-      conversation.pop();
-      saveConversation();
-    }
-
-    const responseMsg = {
-      type: 'agent',
-      content: `I received your message: "${userMessage}". This is a placeholder response — real agent logic is not yet implemented. Type another message to continue the loop.`,
-      timestamp: now()
-    };
-    pushMessage(responseMsg);
-    addAgentMessage(responseMsg);
-    updateSendButton(false);
-  }, 2000);
-
-  task.timeoutId = responseTimeout;
-  return task;
+/** Strip non-ASCII characters from a string (e.g. em-dashes copied from fancy-paste). */
+function toAscii(str) {
+  return str.replace(/[^\x20-\x7E]/g, '');
 }
 
-/** Cancel the currently running agent task, if any. */
-function cancelAgentTask() {
-  if (!currentTask) return;
-  currentTask.cancelled = true;
-  clearTimeout(currentTask.timeoutId);
-  currentTask = null;
-
-  // Remove the thinking message from DOM and state
+/**
+ * Remove the "thinking" message element and its state entry.
+ */
+function clearThinkingMessage() {
   const container = document.getElementById('agent-messages');
   const thinkingEl = container?.querySelector('.agent-msg.thinking');
   if (thinkingEl) thinkingEl.remove();
@@ -206,7 +172,166 @@ function cancelAgentTask() {
     conversation.pop();
     saveConversation();
   }
+}
 
+/**
+ * Call the OpenRouter API and stream the response into the conversation.
+ * Falls back to a no-key error if agentSettings.apiKey is empty.
+ *
+ * @param {string} userMessage - The current user message (already in conversation[]).
+ * @returns {object} cancellation handle { cancelled, abortController }
+ */
+function callOpenRouter(userMessage) {
+  const settings = loadAgentSettings();
+  const apiKey = toAscii(settings.apiKey);
+
+  if (!apiKey) {
+    // No API key configured — show error immediately and bail out
+    clearThinkingMessage();
+    const errMsg = {
+      type: 'agent',
+      content: 'No API key configured. Click the ⚙ button to enter your OpenRouter API key.',
+      timestamp: now()
+    };
+    pushMessage(errMsg);
+    addAgentMessage(errMsg);
+    updateSendButton(false);
+    return { cancelled: false, abortController: null };
+  }
+
+  const abortController = new AbortController();
+  const task = { cancelled: false, abortController };
+  currentTask = task;
+
+  // Build the messages array from the last AGENT_CONTEXT_WINDOW exchanges
+  const recent = conversation.slice(-AGENT_CONTEXT_WINDOW);
+  const messages = recent.map(msg => ({
+    role: msg.type === 'user' ? 'user' : 'assistant',
+    content: msg.content
+  }));
+
+  // Show thinking state after a brief delay
+  const thinkTimeout = setTimeout(() => {
+    if (task.cancelled) return;
+    const thinkingMsg = {
+      type: 'agent',
+      content: 'Thinking…',
+      timestamp: now(),
+      thinking: true
+    };
+    pushMessage(thinkingMsg);
+    addAgentMessage(thinkingMsg);
+  }, 400);
+
+  // Kick off the fetch
+  const model = toAscii(settings.model) || 'anthropic/claude-3-haiku';
+
+  fetch(OPENROUTER_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': window.location.origin,
+      'X-Title': toAscii(document.title)
+    },
+    body: JSON.stringify({ model, messages, stream: true }),
+    signal: abortController.signal
+  })
+    .then(async response => {
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`OpenRouter error ${response.status}: ${errText}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let done = false;
+      let content = '';
+
+      // The thinking element is already in the DOM; we will update its textContent
+      const container = document.getElementById('agent-messages');
+      const thinkingEl = container?.querySelector('.agent-msg.thinking');
+
+      while (!done) {
+        if (task.cancelled) {
+          reader.cancel();
+          return;
+        }
+        const { value, done: d } = await reader.read();
+        done = d;
+        if (!value) continue;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') { done = true; break; }
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content ?? '';
+            if (delta) {
+              content += delta;
+              // Update the thinking bubble in place for live streaming feel
+              if (thinkingEl) {
+                const bubble = thinkingEl.querySelector('.agent-msg-bubble');
+                if (bubble) bubble.textContent = content || 'Thinking…';
+              }
+            }
+          } catch {
+            // Skip malformed lines
+          }
+        }
+      }
+
+      clearTimeout(thinkTimeout);
+
+      if (task.cancelled) return;
+      currentTask = null;
+
+      // Replace thinking with final response
+      clearThinkingMessage();
+      const responseMsg = {
+        type: 'agent',
+        content: content || '(No response from model.)',
+        timestamp: now()
+      };
+      pushMessage(responseMsg);
+      addAgentMessage(responseMsg);
+      updateSendButton(false);
+    })
+    .catch(err => {
+      if (err.name === 'AbortError') return; // cancelled — already cleaned up
+      clearTimeout(thinkTimeout);
+      if (task.cancelled) return;
+      currentTask = null;
+      clearThinkingMessage();
+      const errMsg = {
+        type: 'agent',
+        content: `Error calling OpenRouter: ${err.message}`,
+        timestamp: now()
+      };
+      pushMessage(errMsg);
+      addAgentMessage(errMsg);
+      updateSendButton(false);
+    });
+
+  return task;
+}
+
+/** Cancel the currently running agent task, if any. */
+function cancelAgentTask() {
+  if (!currentTask) return;
+  currentTask.cancelled = true;
+  // Cancel either a pending setTimeout (filler) or an in-flight fetch
+  if (currentTask.timeoutId) clearTimeout(currentTask.timeoutId);
+  if (currentTask.abortController) currentTask.abortController.abort();
+  currentTask = null;
+
+  clearThinkingMessage();
   updateSendButton(false);
 }
 
@@ -257,9 +382,9 @@ function handleSendClick() {
   pushMessage(userMsg);
   addAgentMessage(userMsg);
 
-  // Start the filler agent loop
+  // Start the OpenRouter agent loop
   updateSendButton(true);
-  startFillerAgent(content);
+  callOpenRouter(content);
 }
 
 // ============================================================
@@ -462,7 +587,14 @@ export function initAgentView() {
   // Wire up the settings button and modal (idempotent — safe to call multiple times)
   initAgentSettings();
 
-  conversation = loadConversation();
+  // Optionally restore conversation history from localStorage on page load.
+  // The persistence layer is always active (saves on every new message),
+  // but here we choose whether to rehydrate the in-memory array on init.
+  if (AGENT_HISTORY_ON_RELOAD) {
+    conversation = loadConversation();
+  } else {
+    conversation = [];
+  }
 
   const container = document.getElementById('agent-messages');
   if (!container) return;
@@ -480,7 +612,7 @@ export function initAgentView() {
           </svg>
         </div>
         <div class="agent-placeholder-title">Start a conversation</div>
-        <div class="agent-placeholder-sub">Send a message to begin. The agent will respond with a placeholder until real logic is added.</div>
+        <div class="agent-placeholder-sub">Configure your OpenRouter API key in ⚙ settings, then send a message to begin.</div>
       </div>
     `;
   } else {

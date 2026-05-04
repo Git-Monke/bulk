@@ -281,21 +281,25 @@ The Agent tab in the left sidebar provides a conversational interface. It is ini
 
 ### Architecture (`src/agent-ui.js`)
 
-**Conversation state** — a module-level `conversation` array (initially loaded from localStorage). Messages have this shape:
+**Feature flag** — `AGENT_HISTORY_ON_RELOAD` at the top of `agent-ui.js` controls whether `initAgentView()` restores conversation history from localStorage on page load. Set to `true` to re-enable; `false` starts each session with a blank conversation (persistence code is always active).
+
+**Conversation state** — a module-level `conversation` array (initially loaded from localStorage when `AGENT_HISTORY_ON_RELOAD` is `true`). Messages have this shape:
 ```javascript
 { type: 'user' | 'agent' | 'tool_call' | 'tool_cluster', content, timestamp, thinking?, toolName?, params?, result? }
 ```
 
-**Storage** — conversation is persisted under `localStorage` key `bulk-meal-planner-conversation`. Every mutation (new message, cancelled thinking) triggers `saveConversation()`. On `initAgentView()`, `loadConversation()` restores the full history.
+**Storage** — conversation is persisted under `localStorage` key `bulk-meal-planner-conversation`. Every mutation (new message, cancelled thinking) triggers `saveConversation()`. History is only rehydrated into memory on page load if `AGENT_HISTORY_ON_RELOAD` is `true`.
 
-**Filler agent loop** — `startFillerAgent(userMessage)` is a placeholder that:
-1. Waits 600ms, then appends a `thinking: true` message ("Thinking…") to both state and DOM.
-2. Waits another 1400ms (2s total), removes the thinking DOM node, then appends the placeholder response.
-
-The function returns a task handle `{ cancelled, timeoutId }` stored in `currentTask`. A `cancelAgentTask()` function clears the timeout, sets `cancelled = true`, and removes the thinking node from both DOM and state.
+**OpenRouter integration** — `callOpenRouter(userMessage)` handles the full message flow:
+1. Reads `apiKey` and `model` from agent settings (`loadAgentSettings()`).
+2. Falls back to an inline error message if no API key is configured.
+3. Builds a `messages` array from the last `AGENT_CONTEXT_WINDOW` (20) conversation turns and POSTs to `https://openrouter.ai/api/v1/chat/completions` with `stream: true`. The API key is passed through `toAscii()` before use to strip non-ASCII characters (e.g. em-dashes) that would cause a `ByteString` header conversion error.
+4. After a 400ms delay shows a "Thinking…" bubble; the bubble's text is updated in-place as the stream delivers delta chunks, giving live-response feedback.
+5. On completion, the thinking bubble is replaced with the final `content` string. On error, an error message is appended.
+6. `cancelAgentTask()` calls `abortController.abort()` to cancel the in-flight fetch, and removes the thinking node from both DOM and state.
 
 **Send / Stop button** — `#agent-send` toggles between:
-- **Send** (paper plane icon): appends user message, calls `startFillerAgent()`.
+- **Send** (paper plane icon): appends user message, calls `callOpenRouter()`.
 - **Stop** (square icon, warm amber background): calls `cancelAgentTask()`.
 
 Enter key in `#agent-input` also triggers send. Empty messages are ignored.
@@ -306,12 +310,12 @@ Enter key in `#agent-input` also triggers send. Empty messages are ignored.
 - Save persists `{ apiKey, model }` to localStorage under `bulk-meal-planner-agent-settings`. Cancel closes without persisting.
 - Wiring lives in `initAgentSettings()` (in `agent-ui.js`), called from `initAgentView()` with a guard to avoid duplicate event listeners.
 
-**Rendering** — `renderAgentMessages(messages)` groups consecutive `tool_call` entries into `tool_cluster` groups, then renders all. `addAgentMessage(msg)` appends a single message. `renderMessage()` handles the `thinking` flag by adding a pulsing ellipsis animation.
+**Rendering** — `renderAgentMessages(messages)` groups consecutive `tool_call` entries into `tool_cluster` groups, then renders all. `addAgentMessage(msg)` appends a single message. `renderMessage()` handles the `thinking` flag by updating the bubble text in-place.
 
 ### Exports
 
 ```javascript
-export function initAgentView()       // Load history, wire up send/stop, show placeholder if empty
+export function initAgentView()       // Load history (if flag enabled), wire up send/stop, show placeholder if empty
 export function renderAgentMessages() // Full re-render (used by initAgentView)
 export function addAgentMessage()     // Append a single message (used by agent loop)
 export function clearAgentConversation() // Clear in-memory state + localStorage (not wired to UI yet)
@@ -322,7 +326,7 @@ export function clearAgentConversation() // Clear in-memory state + localStorage
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
 - **Mobile not optimized** — desktop-first per SPEC
 - **ES modules required** — all scripts now use ES module imports/exports, requires modern browser
-- **Agent loop is a placeholder** — `startFillerAgent()` waits 2s and returns a static response. Real agent logic (tool calls, LLM integration) is not yet wired up.
+- **Agent cannot call tools** — `callOpenRouter()` only returns text; tool-use protocol not yet implemented
 - **No "Clear chat" button** — `clearAgentConversation()` exists but has no UI trigger yet.
 
 ## Print View Behavior
