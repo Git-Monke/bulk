@@ -1,0 +1,181 @@
+/* ============================================================
+   Right summary cards
+   ============================================================ */
+.summary-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 0;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-card);
+}
+.summary-card-header {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--c-line);
+}
+.stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stat-list > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 2px 0;
+}
+.stat-list dt {
+  font-size: 12px;
+  color: var(--c-muted);
+  font-weight: 500;
+}
+.stat-list dd {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+.stat-list .emphasis dt {
+  font-weight: 600;
+  color: var(--c-text);
+}
+.stat-list .emphasis dd {
+  font-size: 15px;
+  font-weight: 700;
+}
+.text-accent { color: var(--c-warm) !important; }
+
+/* Variant breakdown rows */
+.variant-row {
+  background: var(--c-inset);
+  border-radius: 0;
+  padding: 8px 10px;
+}
+.variant-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+.variant-row-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+.variant-row-occ {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--c-muted);
+  letter-spacing: 0.02em;
+}
+.variant-row-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 10px;
+  font-size: 11px;
+  color: var(--c-muted);
+  font-variant-numeric: tabular-nums;
+}
+.variant-row-stats .stat-num { color: var(--c-text); font-weight: 600; }
+.variant-row-price {
+  margin-top: 4px;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--c-warm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Modal — edit recipe
+   ============================================================ */
+.modal-box {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 0;
+  box-shadow: var(--shadow-pop);
+}
+
+.edit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 0;
+  background: var(--c-inset);
+}
+.edit-row-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--c-text);
+  margin-bottom: 6px;
+}
+.edit-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.edit-num-input {
+  width: 64px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--c-line);
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--c-surface);
+  text-align: center;
+  color: var(--c-text);
+}
+.edit-num-input:focus {
+  outline: none;
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
+}
+.edit-unit {
+  font-size: 11px;
+  color: var(--c-faint);
+  width: 24px;
+}
+
+/* Ingredient search */
+#ingredient-search-container {
+  position: relative;
+}
+#ingredient-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  box-shadow: var(--shadow-pop);
+  border-radius: 0;
+  padding: 4px;
+}
+.ingredient-search-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--c-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background 100ms;
+}
+.ingredient-search-item:hover {
+  background: var(--c-inset);
+}

@@ -14,7 +14,10 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 - `src/grid-ui.js` — meal grid rendering and summary calculations
 - `src/print.js` — print view generation
 - `src/main.js` — event wiring and initialization (thin glue)
-- `css/style.css` — custom styles for theme overrides, ingredient search, modal elements
+- `css/components-buttons-agent.css` — buttons, agent placeholder, agent chat UI, select pill
+- `css/components-cards.css` — recipe list cards and ingredient list cards
+- `css/components-slots.css` — ingredient modal, slot cards, range slider
+- `css/components-panels.css` — right summary cards, edit recipe modal, ingredient search typeahead
 
 ### Data Model
 
@@ -268,7 +271,7 @@ src/
 
 ## Styling
 
-All custom styles are in `css/` and split into five logical layers: `tokens.css` (DaisyUI theme overrides / CSS custom properties), `base.css` (resets, typography, scrollbars, SortableJS helpers), `layout.css` (app shell regions), `components.css` (all UI elements), and `utilities.css` (empty-state helpers). See `css/style.md` for the full style guide, naming conventions, and import order. To add a new style, find the appropriate file based on its purpose; never add rules to `tokens.css` unless they are new custom properties.
+All custom styles are in `css/` and split into seven logical layers: `tokens.css` (DaisyUI theme overrides / CSS custom properties), `base.css` (resets, typography, scrollbars, SortableJS helpers), `layout.css` (app shell regions), four `components-*.css` files (UI elements split by group), and `utilities.css` (empty-state helpers). See `css/style.md` for the full style guide, naming conventions, and import order. To add a new style, find the appropriate file based on its purpose; never add rules to `tokens.css` unless they are new custom properties.
 
 ## Known Gaps / TODO
 

@@ -2,13 +2,16 @@
 
 ## File Structure
 
-All custom styles live in `css/`. They are split into five logical layers, loaded in this order from `index.html`:
+All custom styles live in `css/`. They are split into seven logical layers, loaded in this order from `index.html`:
 
 ```html
 <link rel="stylesheet" href="css/tokens.css">   <!-- must be first -->
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/components-buttons-agent.css">
+<link rel="stylesheet" href="css/components-cards.css">
+<link rel="stylesheet" href="css/components-slots.css">
+<link rel="stylesheet" href="css/components-panels.css">
 <link rel="stylesheet" href="css/utilities.css">
 ```
 
@@ -17,7 +20,10 @@ All custom styles live in `css/`. They are split into five logical layers, loade
 | `tokens.css` | DaisyUI theme overrides (CSS custom properties / design tokens). Must load first — all other files reference its variables. |
 | `base.css` | Global resets, typography, scrollbars, number-input spinners, SortableJS drag helpers. |
 | `layout.css` | Major page regions: app header, brand, header controls, left/right sidebars, main grid area, day columns, meal slots, recipe stacks. |
-| `components.css` | All reusable UI elements: buttons, cards (recipe, ingredient, slot), modals, sliders, summary panels, agent chat, ingredient modal, category dropdowns, ingredient search. |
+| `components-buttons-agent.css` | Buttons (accent, soft, send), agent placeholder, agent chat messages/clusters/tool-expansion, chat input row, select pill. |
+| `components-cards.css` | Recipe list cards (sidebar, draggable) and ingredient list cards (non-draggable), including edit pencil, stats, price, modified badge. |
+| `components-slots.css` | Ingredient modal (fields, grid, mode toggle, error, autocomplete), slot cards (meal grid entries, remove, macros), slider (range input + multiplier label). |
+| `components-panels.css` | Right summary cards (stat list, variant breakdown rows), edit recipe modal (modal box, edit rows, num inputs, ingredient search typeahead). |
 | `utilities.css` | Single-purpose helpers: empty-state display only. |
 
 ---
@@ -56,13 +62,13 @@ Edit `css/tokens.css`. All semantic tokens use `--c-*` prefixes so a single-file
 Add rules to `css/layout.css`. Prefer flex/grid layout primitives already established (`.sidebar`, `.day-col`, `.meal-slot`).
 
 ### New UI Component
-Add rules to `css/components.css`. Follow existing class naming (BEM-ish). If the component needs state classes (`.is-modified`, etc.), add them here too.
+Add rules to the appropriate `css/components-*.css` file based on the table above. Follow existing class naming (BEM-ish). If the component needs state classes (`.is-modified`, etc.), add them here too.
 
 ### One-off Exception
 Use `css/utilities.css` only for truly single-purpose helpers that don't fit anywhere else. Prefer adding to the appropriate component/layout file instead.
 
 ### DaisyUI Conflicts
-DaisyUI utilities (`.btn`, `.modal`, `.input`, `.textarea`, `.select`) are used throughout the app. Custom overrides targeting those classes belong in `css/components.css`. Do not redefine Tailwind/DaisyUI utilities — extend them.
+DaisyUI utilities (`.btn`, `.modal`, `.input`, `.textarea`, `.select`) are used throughout the app. Custom overrides targeting those classes belong in the appropriate `css/components-*.css` file. Do not redefine Tailwind/DaisyUI utilities — extend them.
 
 ---
 

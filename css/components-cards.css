@@ -1,0 +1,128 @@
+/* ============================================================
+   Recipe list cards (sidebar)
+   ============================================================ */
+.recipe-card {
+  position: relative;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 0;
+  padding: 10px 12px;
+  cursor: grab;
+  transition: border-color 120ms, box-shadow 120ms, transform 120ms;
+  user-select: none;
+}
+.recipe-card:hover {
+  border-color: var(--c-line-strong);
+  box-shadow: var(--shadow-card);
+}
+.recipe-card:active { cursor: grabbing; }
+.recipe-card.is-modified::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0px; bottom: 0px;
+  opacity: 0.5;
+  width: 3px;
+  background: var(--c-warm);
+  border-radius: 0;
+}
+.recipe-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 22px;
+}
+.recipe-card-edit {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  color: var(--c-faint);
+  opacity: 0;
+  transition: opacity 120ms, background 120ms, color 120ms;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.recipe-card:hover .recipe-card-edit { opacity: 1; }
+.recipe-card-edit:hover {
+  background: var(--c-inset);
+  color: var(--c-text);
+}
+.recipe-card-edit svg { width: 14px; height: 14px; }
+
+.recipe-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--c-muted);
+  font-variant-numeric: tabular-nums;
+}
+.recipe-card-stats .stat-num { color: var(--c-text); font-weight: 600; }
+.recipe-card-price {
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--c-warm);
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge-modified {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 0;
+  background: var(--c-warm-soft);
+  color: var(--c-warm);
+}
+
+/* ============================================================
+   Ingredient list cards (sidebar) — non-draggable
+   ============================================================ */
+.ingredient-card {
+  position: relative;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 0;
+  padding: 10px 12px;
+  cursor: default;
+  user-select: none;
+  transition: border-color 120ms;
+}
+.ingredient-card:hover {
+  border-color: var(--c-line-strong);
+}
+.ingredient-card.is-custom::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  opacity: 0.5;
+  width: 3px;
+  background: var(--c-accent);
+  border-radius: 0;
+}
+.ingredient-card .recipe-card-edit { opacity: 0; }
+.ingredient-card:hover .recipe-card-edit { opacity: 1; }
+.ingredient-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--c-muted);
+  font-variant-numeric: tabular-nums;
+}
+.ingredient-card-meta .stat-num { color: var(--c-text); font-weight: 600; }
+.ingredient-card-meta .recipe-card-price { margin-top: 0; }

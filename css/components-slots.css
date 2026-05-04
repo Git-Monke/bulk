@@ -1,0 +1,209 @@
+/* ============================================================
+   Ingredient modal
+   ============================================================ */
+.ing-field { display: flex; flex-direction: column; gap: 4px; }
+.ing-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+.ing-help {
+  font-size: 11.5px;
+  color: var(--c-faint);
+  margin-top: 2px;
+}
+.ing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ing-mode-toggle {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+  align-items: center;
+}
+.ing-mode-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.ing-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ing-error {
+  background: var(--c-warm-soft, #fef3c7);
+  color: var(--c-warm, #b45309);
+  border: 1px solid currentColor;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.ing-category-wrap {
+  position: relative;
+}
+.ing-suggest {
+  position: absolute;
+  left: 0; right: 0; top: 100%;
+  z-index: 20;
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+.ing-suggest-item {
+  padding: 6px 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.ing-suggest-item:hover {
+  background: var(--c-inset);
+}
+
+/* ============================================================
+   Slot cards (recipes inside a meal)
+   ============================================================ */
+.slot-card {
+  background: var(--c-inset);
+  border-radius: 0;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  transition: background 120ms;
+}
+.slot-card:hover { background: #ebe9e2; }
+.slot-card.is-modified {
+  padding-left: 8px;
+}
+.slot-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+.slot-card-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.3;
+}
+.slot-card-remove {
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  color: var(--c-faint);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 120ms, color 120ms;
+  flex-shrink: 0;
+}
+.slot-card-remove:hover {
+  background: var(--c-danger-soft);
+  color: var(--c-danger);
+}
+.slot-macros {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 10px;
+  font-size: 11px;
+  color: var(--c-muted);
+  font-variant-numeric: tabular-nums;
+}
+.slot-macros .stat-num { color: var(--c-text); font-weight: 600; }
+.slot-macros .price {
+  color: var(--c-warm);
+  font-weight: 700;
+  text-align: right;
+}
+
+.weight-display {
+  font-size: 10.5px;
+}
+
+/* Print styles for prepped notes */
+.note {
+  font-size: 11px;
+  color: var(--c-muted);
+  font-weight: normal;
+}
+
+/* ============================================================
+   Modern slider
+   ============================================================ */
+.bulk-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+.bulk-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  background: var(--c-line-strong);
+  border-radius: 999px;
+}
+.bulk-slider::-moz-range-track {
+  height: 3px;
+  background: var(--c-line-strong);
+  border-radius: 999px;
+}
+.bulk-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5.5px;
+  background: var(--c-accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: transform 120ms;
+}
+.bulk-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--c-accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: transform 120ms;
+}
+.bulk-slider:hover::-webkit-slider-thumb { transform: scale(1.15); }
+.bulk-slider:hover::-moz-range-thumb { transform: scale(1.15); }
+.bulk-slider:focus { outline: none; }
+.bulk-slider:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.18);
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.multiplier-label {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  width: 32px;
+  text-align: right;
+  color: var(--c-muted);
+}
