@@ -266,6 +266,10 @@ src/
 - `print.js` imports: state, calculations, data
 - `calculations.js` imports: data
 
+## Styling
+
+All custom styles are in `css/` and split into five logical layers: `tokens.css` (DaisyUI theme overrides / CSS custom properties), `base.css` (resets, typography, scrollbars, SortableJS helpers), `layout.css` (app shell regions), `components.css` (all UI elements), and `utilities.css` (empty-state helpers). See `css/style.md` for the full style guide, naming conventions, and import order. To add a new style, find the appropriate file based on its purpose; never add rules to `tokens.css` unless they are new custom properties.
+
 ## Known Gaps / TODO
 
 - **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations

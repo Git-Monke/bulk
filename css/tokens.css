@@ -1,0 +1,50 @@
+/* ============================================================
+   Theme tokens — overrides DaisyUI base palette
+   ============================================================ */
+:root,
+[data-theme="bulk"] {
+  /* DaisyUI 4 uses oklch components: <L>% <C> <H> */
+  --p: 53% 0.12 162;          /* primary — emerald-700 */
+  --pf: 47% 0.12 162;
+  --pc: 100% 0 0;             /* primary content */
+  --s: 56% 0.10 200;
+  --sc: 100% 0 0;
+  --a: 67% 0.16 50;           /* accent — warm amber/copper */
+  --af: 60% 0.16 50;
+  --ac: 100% 0 0;
+  --n: 22% 0.01 80;           /* neutral — warm dark */
+  --nf: 18% 0.01 80;
+  --nc: 98% 0.005 80;
+  --b1: 100% 0 0;             /* base-100 white */
+  --b2: 98.5% 0.004 90;       /* base-200 stone-50ish */
+  --b3: 96% 0.005 90;         /* base-300 stone-100ish */
+  --bc: 22% 0.008 80;         /* base content stone-900 warm */
+  --in: 60% 0.13 220;
+  --su: 60% 0.13 160;
+  --wa: 70% 0.14 75;
+  --er: 58% 0.20 25;
+  --rounded-box: 0;
+  --rounded-btn: 0;
+  --rounded-badge: 0;
+  --animation-btn: 0.2s;
+  --border-btn: 1px;
+
+  /* Custom semantic tokens */
+  --c-surface: #ffffff;
+  --c-canvas: #f7f6f3;
+  --c-elevated: #ffffff;
+  --c-inset: #f1efe9;
+  --c-line: #ebe7df;
+  --c-line-strong: #ddd7ca;
+  --c-text: #1c1917;
+  --c-muted: #78716c;
+  --c-faint: #a8a29e;
+  --c-accent: #047857;        /* emerald-700 */
+  --c-accent-soft: #ecfdf5;   /* emerald-50 */
+  --c-warm: #b45309;          /* amber-700 — used for $$ */
+  --c-warm-soft: #fffbeb;
+  --c-danger: #b91c1c;
+  --c-danger-soft: #fef2f2;
+  --shadow-card: none;
+  --shadow-pop: 0 1px 0 rgba(28, 25, 23, 0.12);
+}
