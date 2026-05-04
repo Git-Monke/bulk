@@ -21,6 +21,7 @@ import { generatePrintView } from './print.js';
 import { clearGridState } from './state.js';
 import { clearStorage } from './calculations.js';
 import { loadCustomRecipesIntoAll, mergeCustomIngredientsIntoIngredients } from './data.js';
+import { initAgentView } from './agent-ui.js';
 
 // ============================================
 // EVENT LISTENERS
@@ -145,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('tab-agent').addEventListener('click', () => {
     applyTab('agent');
+    initAgentView();
   });
 
   // Sidebar view toggle.

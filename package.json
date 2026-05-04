@@ -12,5 +12,8 @@
   "type": "module",
   "dependencies": {
     "glimpseui": "^0.8.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1"
   }
 }
