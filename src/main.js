@@ -22,6 +22,7 @@ import { clearGridState } from './state.js';
 import { clearStorage } from './calculations.js';
 import { loadCustomRecipesIntoAll, mergeCustomIngredientsIntoIngredients } from './data.js';
 import { initAgentView } from './agent-ui.js';
+import { initGoalsSettings } from './goals-ui.js';
 
 // ============================================
 // EVENT LISTENERS
@@ -139,6 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Modal listeners.
   initEditModalListeners();
   initIngredientModalListeners();
+
+  // Goals settings modal.
+  initGoalsSettings();
 
   // Top-level tabs (Manual / Agent).
   document.getElementById('tab-manual').addEventListener('click', () => {

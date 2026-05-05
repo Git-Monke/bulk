@@ -249,6 +249,104 @@
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
   </dialog>
 
+  <!-- Goals Settings Modal -->
+  <dialog id="goals-modal" class="modal">
+    <div class="modal-box max-w-md">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold">Daily Goals</h3>
+        <button id="goals-modal-close" class="btn btn-sm btn-ghost btn-square" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <p class="text-sm text-stone-500 mb-4">Set target ranges for your daily macros. Values update the summary in real time.</p>
+
+      <div class="space-y-4">
+        <!-- Calories -->
+        <div class="goal-macro">
+          <div class="goal-macro-header">
+            <span class="goal-macro-label">Calories</span>
+            <button id="goal-calories-clear" class="btn btn-xs btn-ghost">Clear</button>
+          </div>
+          <div class="goal-inputs">
+            <div class="goal-input-wrap">
+              <label class="goal-input-label">At least</label>
+              <input type="number" id="goal-calories-atleast" class="input input-bordered input-sm w-full" placeholder="2500" min="0" step="1">
+            </div>
+            <div class="goal-input-wrap">
+              <label class="goal-input-label">At most</label>
+              <input type="number" id="goal-calories-atmost" class="input input-bordered input-sm w-full" placeholder="3000" min="0" step="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Protein -->
+        <div class="goal-macro">
+          <div class="goal-macro-header">
+            <span class="goal-macro-label">Protein (g)</span>
+            <button id="goal-protein-clear" class="btn btn-xs btn-ghost">Clear</button>
+          </div>
+          <div class="goal-inputs">
+            <div class="goal-input-wrap">
+              <label class="goal-input-label">At least</label>
+              <input type="number" id="goal-protein-atleast" class="input input-bordered input-sm w-full" placeholder="150" min="0" step="1">
+            </div>
+            <div class="goal-input-wrap">
+              <label class="goal-input-label">At most</label>
+              <input type="number" id="goal-protein-atmost" class="input input-bordered input-sm w-full" placeholder="200" min="0" step="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Carbs -->
+        <div class="goal-macro">
+          <div class="goal-macro-header">
+            <span class="goal-macro-label">Carbs (g)</span>
+            <button id="goal-carbs-clear" class="btn btn-xs btn-ghost">Clear</button>
+          </div>
+          <div class="goal-inputs">
+            <div class="goal-input-wrap">
+              <label class="goal-input-label">At least</label>
+              <input type="number" id="goal-carbs-atleast" class="input input-bordered input-sm w-full" placeholder="200" min="0" step="1">
+            </div>
+            <div class="goal-input-wrap">
+              <label class="goal-input-label">At most</label>
+              <input type="number" id="goal-carbs-atmost" class="input input-bordered input-sm w-full" placeholder="250" min="0" step="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Fat -->
+        <div class="goal-macro">
+          <div class="goal-macro-header">
+            <span class="goal-macro-label">Fat (g)</span>
+            <button id="goal-fat-clear" class="btn btn-xs btn-ghost">Clear</button>
+          </div>
+          <div class="goal-inputs">
+            <div class="goal-input-wrap">
+              <label class="goal-input-label">At least</label>
+              <input type="number" id="goal-fat-atleast" class="input input-bordered input-sm w-full" placeholder="70" min="0" step="1">
+            </div>
+            <div class="goal-input-wrap">
+              <label class="goal-input-label">At most</label>
+              <input type="number" id="goal-fat-atmost" class="input input-bordered input-sm w-full" placeholder="100" min="0" step="1">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-3 mt-4 border-t border-base-300">
+        <button id="goals-clear-all" class="btn-soft btn-soft-warning">Clear all</button>
+        <div class="flex-1"></div>
+        <button id="goals-close-btn" class="btn-accent" onclick="document.getElementById('goals-modal').close()">Done</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+
   <!-- Main Layout -->
   <div class="flex h-[calc(100vh-72px)]">
 
@@ -366,6 +464,12 @@
       <section class="summary-card">
         <header class="summary-card-header">
           <span>Daily average</span>
+          <button id="goals-settings-btn" class="goals-settings-btn" aria-label="Goal Settings" title="Set goals">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
         </header>
         <dl class="stat-list num">
           <div><dt>Calories</dt><dd id="summary-calories">0 kcal</dd></div>

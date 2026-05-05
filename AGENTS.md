@@ -21,6 +21,7 @@ Single `index.html` — no build step, CDN-only (DaisyUI v4, Tailwind, SortableJ
 | `css/components-cards.css` | recipe list cards, ingredient list cards |
 | `css/components-slots.css` | ingredient modal, slot cards, range slider |
 | `css/components-panels.css` | right summary cards, edit recipe modal, ingredient search typeahead |
+`css/utilities.css` | empty-state helpers, goal status colors (`.text-error`, `.text-success`) |
 
 ---
 
@@ -109,6 +110,8 @@ Built by `buildSlotCard(variant, meal, entry)` → DOM node. Shows: recipe name,
 - Iterates in-bounds slots only (0..variants-1, 0..mealsPerDay-1)
 - Accumulates per-variant daily/weekly totals (weighted by occurrences)
 - Daily average = weekly totals ÷ days
+- Loads goals via `loadGoals()`, displays goal ranges next to each macro label
+- Values colored green (`text-success`) when goal met, red (`text-error`) when violated
 - Updates: summary-calories, summary-protein, summary-carbs, summary-fat, cost-per-day, cost-per-week, variant-breakdown
 
 ### Input Wiring
@@ -157,6 +160,19 @@ Reuses `computeOccurrences()`, `calculateRecipeMacros()`, `fmtNum()`. Iterates `
 **Custom recipes** — key `bulk-meal-planner-recipes`. Functions: `saveCustomRecipe()`, `getCustomRecipe()`, `deleteCustomRecipe()`, `isRecipeModified()`.
 
 **Custom ingredients** — key `bulk-meal-planner-ingredients` (flat object keyed by id). Loaded via `mergeCustomIngredientsIntoIngredients()` in `src/data.js`.
+
+**Goals** — key `bulk-meal-planner-goals`. Stores macro targets for daily average display:
+```json
+{
+  "calories": { "atLeast": 2500, "atMost": 3000 },
+  "protein": { "atLeast": 150, "atMost": null },
+  "carbs": { "atLeast": null, "atMost": 250 },
+  "fat": { "atLeast": null, "atMost": null }
+}
+```
+- `loadGoals()` — loads from localStorage, seeds defaults on first call
+- `saveGoals(goals)` — persists to localStorage
+- `checkGoal(actual, goal)` — returns `'violated'`, `'ok'`, or `'no_goal'`
 
 **Edit modal behavior**:
 - Recipes: create via `+ New Recipe` button, edit via pencil icon. Modal edits title, serving size, ingredients (search typeahead), amounts. New recipes get slugified ID + timestamp, pushed to `ALL_RECIPES`, persisted. Delete/revert only for custom/modified recipes. Changes trigger `onRecipeModifiedCallback` → refresh list, grid, summary.
