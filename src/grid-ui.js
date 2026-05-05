@@ -21,7 +21,9 @@ import {
   calculateRecipeMacros,
   computeOccurrences,
   fmtNum,
-  loadFromStorage
+  loadFromStorage,
+  loadGoals,
+  checkGoal
 } from './calculations.js';
 
 // -------------------------------------------
@@ -245,11 +247,48 @@ export function updateSummary() {
     fat: weekly.fat / days,
   };
 
+  // Load goals
+  const goals = loadGoals();
+
+  // Helper to update a stat row with goal info
+  function updateStatRow(elId, label, value, goal, unit = '') {
+    const wrapper = document.getElementById(elId).closest('div');
+    const dt = wrapper.querySelector('dt');
+    const dd = wrapper.querySelector('dd');
+
+    const formattedValue = fmtNum(value) + (unit ? ' ' + unit : '');
+    const goalStatus = checkGoal(value, goal);
+    let goalText = '';
+
+    if (goal.atLeast !== null || goal.atMost !== null) {
+      if (goal.atLeast !== null && goal.atMost !== null) {
+        goalText = ` (${goal.atLeast}-${goal.atMost}${unit})`;
+      } else if (goal.atLeast !== null) {
+        goalText = ` (≥${goal.atLeast}${unit})`;
+      } else {
+        goalText = ` (≤${goal.atMost}${unit})`;
+      }
+    }
+
+    dt.textContent = label + goalText;
+    dd.textContent = formattedValue;
+
+    // Color: green when met, red when violated
+    dd.classList.remove('text-success', 'text-error');
+    dd.style.removeProperty('color');
+    if (goalStatus === 'ok' && (goal.atLeast !== null || goal.atMost !== null)) {
+      dd.classList.add('text-success');
+    } else if (goalStatus === 'violated') {
+      dd.classList.add('text-error');
+    }
+  }
+
   // Update summary panel
-  document.getElementById('summary-calories').textContent = fmtNum(dailyAvg.calories) + ' kcal';
-  document.getElementById('summary-protein').textContent = fmtNum(dailyAvg.protein) + 'g';
-  document.getElementById('summary-carbs').textContent = fmtNum(dailyAvg.carbs) + 'g';
-  document.getElementById('summary-fat').textContent = fmtNum(dailyAvg.fat) + 'g';
+  updateStatRow('summary-calories', 'Calories', dailyAvg.calories, goals.calories, 'kcal');
+  updateStatRow('summary-protein', 'Protein', dailyAvg.protein, goals.protein, 'g');
+  updateStatRow('summary-carbs', 'Carbs', dailyAvg.carbs, goals.carbs, 'g');
+  updateStatRow('summary-fat', 'Fat', dailyAvg.fat, goals.fat, 'g');
+
   document.getElementById('cost-per-day').textContent = fmtNum(weekly.price / days, true);
   document.getElementById('cost-per-week').textContent = fmtNum(weekly.price, true);
 

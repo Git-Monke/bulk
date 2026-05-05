@@ -41,7 +41,6 @@
 .stat-list dd {
   font-size: 13px;
   font-weight: 600;
-  color: var(--c-text);
   font-variant-numeric: tabular-nums;
 }
 .stat-list .emphasis dt {

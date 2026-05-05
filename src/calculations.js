@@ -200,3 +200,46 @@ export function loadFromStorage() {
 export function clearStorage() {
   localStorage.removeItem('bulk-meal-planner-v1');
 }
+
+// -------------------------------------------
+// GOALS
+// -------------------------------------------
+
+const GOALS_KEY = 'bulk-meal-planner-goals';
+
+// Default/example goals
+const DEFAULT_GOALS = {
+  calories: { atLeast: 2500, atMost: 3000 },
+  protein: { atLeast: 150, atMost: null },
+  carbs: { atLeast: null, atMost: 250 },
+  fat: { atLeast: null, atMost: null }
+};
+
+export function loadGoals() {
+  try {
+    const raw = localStorage.getItem(GOALS_KEY);
+    if (!raw) {
+      // First load: seed with defaults
+      saveGoals(DEFAULT_GOALS);
+      return DEFAULT_GOALS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    // On error, seed with defaults
+    saveGoals(DEFAULT_GOALS);
+    return DEFAULT_GOALS;
+  }
+}
+
+export function saveGoals(goals) {
+  localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
+}
+
+// Check if a value violates a goal
+// Returns: 'violated' | 'ok' | 'no_goal'
+export function checkGoal(actual, goal) {
+  if (goal.atLeast === null && goal.atMost === null) return 'no_goal';
+  if (goal.atLeast !== null && actual < goal.atLeast) return 'violated';
+  if (goal.atMost !== null && actual > goal.atMost) return 'violated';
+  return 'ok';
+}
