@@ -4,6 +4,7 @@
 //
 // Meal grid rendering, slot cards, and summary calculations.
 
+import { initIcons } from './lucide-init.js';
 import { INGREDIENTS, ALL_RECIPES } from './data.js';
 import {
   gridState,
@@ -66,7 +67,7 @@ function buildSlotCard(variant, meal, entry) {
       <div class="slot-card-head">
         <span class="slot-card-name">${recipe.name}</span>
         <button class="slot-card-remove remove-btn" title="Remove" aria-label="Remove">
-          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+          <i data-lucide="x" class="w-3 h-3"></i>
         </button>
       </div>
       <div class="macros-display">${renderMacros()}</div>
@@ -194,6 +195,7 @@ export function renderMealGrid() {
   });
 
   updateSummary();
+  initIcons();
 }
 
 // -------------------------------------------

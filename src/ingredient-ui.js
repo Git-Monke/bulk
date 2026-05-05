@@ -1,4 +1,5 @@
 // Ingredient sidebar list, ingredient modal, and category dropdowns.
+import { initIcons } from './lucide-init.js';
 import { ALL_RECIPES, INGREDIENTS, isCustomIngredient, addCustomIngredientToIngredients, removeCustomIngredientFromIngredients } from './data.js';
 import { saveCustomIngredient, deleteCustomIngredient, calculateIngredientServing, findRecipesUsingIngredient, fmtNum } from './calculations.js';
 
@@ -84,10 +85,7 @@ export function renderIngredientList() {
     card.innerHTML = `
       ${editable ? `
         <button class="recipe-card-edit edit-ingredient-btn" title="Edit Ingredient" aria-label="Edit Ingredient">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/>
-            <path d="M17.586 3.586a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-          </svg>
+          <i data-lucide="square-pen"></i>
         </button>
       ` : ''}
       <div class="recipe-card-name">${ing.name}</div>
@@ -112,6 +110,8 @@ export function renderIngredientList() {
 
     container.appendChild(card);
   }
+
+  initIcons();
 }
 
 // -------------------------------------------

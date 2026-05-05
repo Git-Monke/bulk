@@ -1,4 +1,5 @@
 // Recipe sidebar list and edit modal.
+import { initIcons } from './lucide-init.js';
 import { ALL_RECIPES, INGREDIENTS, removeRecipeFromList } from './data.js';
 import { getRecipe, isRecipeModified, saveCustomRecipe, deleteCustomRecipe, calculateRecipeMacros, fmtNum } from './calculations.js';
 
@@ -27,10 +28,7 @@ export function renderRecipeList() {
     card.dataset.recipeId = recipe.id;
     card.innerHTML = `
       <button class="recipe-card-edit edit-recipe-btn" title="Edit Recipe" aria-label="Edit Recipe">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/>
-          <path d="M17.586 3.586a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-        </svg>
+        <i data-lucide="square-pen"></i>
       </button>
       <div class="recipe-card-name">${recipe.name}</div>
       <div class="recipe-card-stats">
@@ -49,6 +47,8 @@ export function renderRecipeList() {
 
     container.appendChild(card);
   }
+
+  initIcons();
 
   new Sortable(container, {
     group: { name: 'recipes', pull: 'clone', put: false },
@@ -134,10 +134,7 @@ function renderEditIngredients() {
         <div class="flex items-center justify-between">
           <div class="edit-row-name truncate">${ingredient.name}</div>
           <button class="btn btn-ghost btn-xs text-error remove-ingredient-btn" data-ingredient-id="${ing.id}" title="Remove ingredient">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            <i data-lucide="x" class="w-4 h-4"></i>
           </button>
         </div>
         <div class="edit-row-controls">
@@ -167,6 +164,8 @@ function renderEditIngredients() {
     const slider = row.querySelector('.ingredient-slider');
     const input = row.querySelector('.ingredient-input');
     const removeBtn = row.querySelector('.remove-ingredient-btn');
+
+    initIcons();
 
     slider.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);

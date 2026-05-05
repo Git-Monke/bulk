@@ -13,13 +13,11 @@ import '../css/components-slots.css';
 import '../css/components-panels.css';
 import '../css/utilities.css';
 
-// Import modules that provide globals (lucide, sortable)
-import { createIcons, icons } from 'lucide';
+// Import modules
+import { initIcons } from './lucide-init.js';
 import Sortable from 'sortablejs';
 
 // Make available globally for modules that use them
-window.icons = icons;
-window.createIcons = createIcons;
 window.Sortable = Sortable;
 
 // Import modules
@@ -143,9 +141,6 @@ function rerenderActiveSidebar() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Lucide icons
-  createIcons({ icons });
-
   // Merge persisted custom data into the in-memory stores.
   loadCustomRecipesIntoAll();
   mergeCustomIngredientsIntoIngredients();
@@ -159,6 +154,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial render.
   applyView('recipes');
   renderMealGrid();
+
+  // Initialize Lucide icons AFTER all HTML is in the DOM.
+  initIcons();
 
   // Modal listeners.
   initEditModalListeners();
@@ -193,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     rerenderActiveSidebar();
     renderMealGrid();
     updateSummary();
+    initIcons();
   });
 
   // Refresh sidebar + grid + summary whenever ingredients change.
@@ -203,5 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
     rerenderActiveSidebar();
     renderMealGrid();
     updateSummary();
+    initIcons();
   });
 });

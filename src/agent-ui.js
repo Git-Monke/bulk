@@ -1,3 +1,5 @@
+import { initIcons } from './lucide-init.js';
+
 // ============================================================
 // Feature flags
 // ============================================================
@@ -348,20 +350,13 @@ function updateSendButton(running) {
 
   if (running) {
     btn.classList.add('agent-send-btn', 'agent-stop-btn');
-    btn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="6" y="6" width="12" height="12"></rect>
-      </svg>
-    `;
+    btn.innerHTML = `<i data-lucide="square"></i>`;
+    initIcons();
     btn.setAttribute('aria-label', 'Stop');
   } else {
     btn.classList.remove('agent-stop-btn');
-    btn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="22" y1="2" x2="11" y2="13"></line>
-        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-      </svg>
-    `;
+    btn.innerHTML = `<i data-lucide="send"></i>`;
+    initIcons();
     btn.setAttribute('aria-label', 'Send');
   }
 }
@@ -532,7 +527,7 @@ export function renderAgentMessages(messages) {
   container.innerHTML = grouped.map(renderMessage).join('');
 
   // Initialize Lucide icons for newly rendered content
-  createIcons({ icons });
+  initIcons();
 
   // Add click handlers for tool clusters
   container.querySelectorAll('.agent-msg.tool-cluster').forEach(cluster => {
@@ -631,7 +626,7 @@ export function initAgentView() {
         <div class="agent-placeholder-sub">Configure your OpenRouter API key in ⚙ settings, then send a message to begin.</div>
       </div>
     `;
-    createIcons({ icons });
+    initIcons();
   } else {
     renderAgentMessages(conversation);
   }
