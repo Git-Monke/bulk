@@ -1,66 +1,81 @@
-Read SPEC.md if you need more clarification about this project's bigger picture.
+Read SPEC.md for project context.
 
 ---
 
-## Current Architecture
+## Stack
 
-### Stack
-- Single `index.html` — no build step, CDN-only (DaisyUI v4, Tailwind, SortableJS)
-- `src/data.js` — ingredients + recipes databases (exports `INGREDIENTS`, `ALL_RECIPES`)
-- `src/state.js` — grid state management, storage operations
-- `src/calculations.js` — macro calculations, formatting, data access utilities
-- `src/recipe-ui.js` — recipe list rendering and recipe edit modal
-- `src/ingredient-ui.js` — ingredient list rendering, ingredient modal, and category dropdowns
-- `src/grid-ui.js` — meal grid rendering and summary calculations
-- `src/print.js` — print view generation
-- `src/main.js` — event wiring and initialization (thin glue)
-- `css/components-buttons-agent.css` — buttons, agent placeholder, agent chat UI, select pill
-- `css/components-cards.css` — recipe list cards and ingredient list cards
-- `css/components-slots.css` — ingredient modal, slot cards, range slider
-- `css/components-panels.css` — right summary cards, edit recipe modal, ingredient search typeahead
+Single `index.html` — no build step, CDN-only (DaisyUI v4, Tailwind, SortableJS)
 
-### Data Model
+| File | Purpose |
+|------|---------|
+| `src/data.js` | INGREDIENTS, ALL_RECIPES databases |
+| `src/state.js` | gridState Map, entry management, persistence helpers |
+| `src/calculations.js` | calculateRecipeMacros, fmtNum, computeOccurrences, storage |
+| `src/recipe-ui.js` | renderRecipeList, recipe edit modal, ingredient search |
+| `src/ingredient-ui.js` | renderIngredientList, ingredient modal, category dropdowns |
+| `src/grid-ui.js` | renderMealGrid, buildSlotCard, updateSummary |
+| `src/print.js` | generatePrintView |
+| `src/agent-ui.js` | Agent chat: conversation state, localStorage, send/stop |
+| `src/main.js` | Event wiring + initialization (thin glue) |
+| `css/components-buttons-agent.css` | buttons, agent placeholder, agent chat UI, select pill |
+| `css/components-cards.css` | recipe list cards, ingredient list cards |
+| `css/components-slots.css` | ingredient modal, slot cards, range slider |
+| `css/components-panels.css` | right summary cards, edit recipe modal, ingredient search typeahead |
+
+---
+
+## Data Model
 
 **INGREDIENTS** (`src/data.js`) — flat lookup object keyed by string ID:
-- `macrosPer100g`: `{ calories, protein, carbs, fat }`
-- `pricePerUnit`: cost per `unit`
-- `unit`: free text (e.g. "g", "ml", "slice", "whole")
-- `servingSize`: amount in `unit` that the ingredient card displays (defaults to 100 for base ingredients)
-- `isRecipe` (optional): if `true`, auto-generates a single-ingredient recipe at runtime sized to `servingSize`
-- `category` (optional): set on the auto-generated recipe; required when `isRecipe: true`
-- `custom` (optional): present (and `true`) only on user-created ingredients loaded from `localStorage` — used to gate edit/delete UI
+
+```javascript
+{
+  macrosPer100g: { calories, protein, carbs, fat },
+  pricePerUnit: number,
+  unit: string,                    // "g", "ml", "slice", "whole"
+  servingSize: number,             // defaults to 100 for base ingredients
+  isRecipe?: boolean,              // auto-generates single-ingredient recipe
+  category?: string,               // required when isRecipe: true
+  custom?: boolean                 // only on user-created ingredients (gates edit/delete)
+}
+```
 
 **ALL_RECIPES** (`src/data.js`) — merged array of base recipes + auto-generated single-ingredient recipes:
-- `id`: unique string identifier
-- `name`: display name
-- `servingSize`: total grams per 1x serving (used for weight display only)
-- `ingredients`: `[{ id, amount }]` — references INGREDIENTS keys
-- `prepNotes`: free text string for print/export section (optional, empty string for no prep)
 
-**Single-Ingredient Recipes** — Ingredients with `isRecipe: true` are automatically converted to recipes at runtime. The recipe `id` is the ingredient id, `name` is the ingredient name, `servingSize` and `category` are inherited from the ingredient.
+```javascript
+{
+  id: string,
+  name: string,
+  servingSize: number,             // total grams per 1x serving (weight display only)
+  ingredients: [{ id, amount }],   // references INGREDIENTS keys
+  prepNotes?: string               // empty string = no prep section in print
+}
+```
 
-**Macros/price are always derived at runtime** via `calculateRecipeMacros(recipe, multiplier)` — never hardcoded.
+**Single-Ingredient Recipes** — `isRecipe: true` on ingredients auto-generates recipes at runtime. Recipe `id`, `name`, `servingSize`, `category` inherited from ingredient.
+
+**Macros/price always derived at runtime** via `calculateRecipeMacros(recipe, multiplier)` — never hardcoded.
 
 ---
 
-### State Model (`src/state.js`)
+## State Model (`src/state.js`)
 
 **`gridState`** — `Map<string, Array<{ entryId, recipeId, multiplier }>>`
 
 - Key: `"variant-meal"` (e.g. `"0-2"` = variant A, meal slot 3)
 - Value: array of stacked recipe entries for that slot
-- **Keys are never deleted** — when the grid is resized, out-of-bounds keys are kept in memory but excluded from all calculations. This prevents accidental data loss if the user temporarily shrinks the grid.
-- Each entry has a unique `entryId` (incrementing integer from `nextEntryId`) used to identify it for mutation/removal.
+- **Keys never deleted** — out-of-bounds keys kept on resize, excluded from calculations
+- `entryId`: unique incrementing integer for mutation/removal
 
-**Key state functions:**
-- `getSlotEntries(variant, meal)` → returns (or creates) the array for a slot
-- `addEntry(variant, meal, recipeId, multiplier)` → pushes a new entry, returns it
+**Key functions:**
+- `getSlotEntries(variant, meal)` → returns or creates array
+- `addEntry(variant, meal, recipeId, multiplier)` → pushes, returns entry
 - `removeEntry(variant, meal, entryId)` → splices out by entryId
 - `updateEntryMultiplier(variant, meal, entryId, multiplier)` → mutates in place
 
 ---
 
-### Layout Structure
+## Layout
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -74,65 +89,57 @@ Read SPEC.md if you need more clarification about this project's bigger picture.
 ```
 
 ### Meal Grid
-- Columns = `Variants` count (`input-variants`), each `flex-1 min-w-[200px]`
-- Rows = `Meals/day` count (`input-meals`), each `flex-1`
-- Column headers: Day A, Day B, Day C…
-- Slot headers: Meal 1, Meal 2…
-- Each slot contains a `.recipe-stack` div where dropped cards are appended
-- Empty stacks show a `slot-placeholder` div
+- Columns = `input-variants`, each `flex-1 min-w-[200px]`
+- Rows = `input-meals`, each `flex-1`
+- Headers: Day A/B/C…, Meal 1/2…
+- Each slot has `.recipe-stack` div for dropped cards; empty shows `slot-placeholder`
 
 ### Slot Cards
-- Built by `buildSlotCard(variant, meal, entry)` — returns a DOM node
-- Shows: recipe name, scaled macros (calories/protein/carbs/fat/weight/price), range slider (0.1–4x, step 0.1), remove button
-- The card holds a closure over `entry` — slider `input` events mutate `entry.multiplier` directly in gridState and refresh the macro display in-place, then call `updateSummary()`
-- Remove button calls `removeEntry()`, removes the DOM node, calls `updateSummary()`
+Built by `buildSlotCard(variant, meal, entry)` → DOM node. Shows: recipe name, scaled macros (cal/protein/carbs/fat/weight/price), range slider (0.1–4x, step 0.1), remove button. Card holds closure over `entry`; slider `input` mutates `entry.multiplier` in gridState, refreshes macro display, calls `updateSummary()`. Remove button calls `removeEntry()`, removes DOM node, calls `updateSummary()`.
 
 ### Drag and Drop (SortableJS)
-- Left sidebar: `group: { name: 'recipes', pull: 'clone', put: false }` — clones on drag, never accepts drops
-- Recipe stacks: `group: { name: 'recipes', pull: true, put: true }` — accepts drops, allows reorder
-- `onAdd` handler on each stack:
-  1. Reads `recipeId` from the raw cloned node's `data-recipe-id`
-  2. Removes the raw clone from DOM immediately
-  3. Calls `addEntry()` to register in gridState
-  4. Calls `buildSlotCard()` and appends the rendered card
-  5. Calls `updateSummary()`
-- Cards within stacks can be reordered via drag — note this reorders DOM only, not gridState. This is cosmetic only and doesn't affect calculations (which are order-independent).
+- Left sidebar: `group: { name: 'recipes', pull: 'clone', put: false }` — clones on drag
+- Recipe stacks: `group: { name: 'recipes', pull: true, put: true }` — accepts drops
+- `onAdd` handler on each stack: reads `recipeId` from `data-recipe-id`, removes clone, calls `addEntry()`, calls `buildSlotCard()`, calls `updateSummary()`
+- Reorder within stacks is cosmetic only (DOM only, not gridState)
 
 ### Summary Calculations (`updateSummary`)
 - Reads `days`, `variants`, `mealsPerDay` from inputs
-- Computes `occurrences[v]` per variant:
-  - `base = Math.floor(days / variants)`
-  - first `days % variants` variants get `base + 1`
-  - Example: 7 days, 3 variants → occurrences = [3, 2, 2]
-- Iterates only in-bounds slots (0..variants-1, 0..mealsPerDay-1)
-- Accumulates per-variant daily totals and weekly totals (weighted by occurrences)
+- Computes `occurrences[v]` per variant: `base = Math.floor(days / variants)`, first `days % variants` get `base + 1` (7 days, 3 variants → [3, 2, 2])
+- Iterates in-bounds slots only (0..variants-1, 0..mealsPerDay-1)
+- Accumulates per-variant daily/weekly totals (weighted by occurrences)
 - Daily average = weekly totals ÷ days
 - Updates: summary-calories, summary-protein, summary-carbs, summary-fat, cost-per-day, cost-per-week, variant-breakdown
 
 ### Input Wiring
-- `input-days` — fires `renderMealGrid()` then `updateSummary()` (no grid rebuild needed)
-- `input-meals`, `input-variants` — fires `renderMealGrid()` which calls `updateSummary()` at the end
-- Print button — calls `generatePrintView()`
-- Clear button (`#btn-clear`) — confirms, clears `gridState`, resets `nextEntryId`, calls `clearStorage()`, re-renders grid
+- `input-days` → `renderMealGrid()` → `updateSummary()`
+- `input-meals`, `input-variants` → `renderMealGrid()` (calls `updateSummary()` at end)
+- Print button → `generatePrintView()`
+- Clear button (`#btn-clear`) → confirms, clears `gridState`, resets `nextEntryId`, calls `clearStorage()`, re-renders
 
-Note: Storage operations are now called automatically on mutations via `state.js`. The `main.js` file contains only event listener wiring and initialization.
+Storage operations called automatically on mutations via `state.js`.
 
-### Print View (`generatePrintView`)
-Opens a new browser window with a clean, print-ready HTML document (no app chrome). The document has three sections:
+---
 
-1. **Summary** — plan config (days/variants/meals), daily average macros (calories/protein/carbs/fat), cost per day and per week, and a per-variant breakdown table showing each day type's macros, cost, and how many times it occurs.
-2. **Shopping List** — all ingredients across the entire plan aggregated into a single table (ingredient name, total quantity with unit, estimated cost), sorted alphabetically, with a grand total at the bottom. Quantities are rounded to the nearest whole number.
-3. **Meal Prep Guide** — one block per unique recipe used anywhere in the plan, showing the total scaled ingredient amounts to cook for the whole week (sum of `multiplier × occurrences` across all slots containing that recipe), and the recipe's `prepNotes`.
+## Print View (`generatePrintView`)
 
-The function reuses `computeOccurrences()`, `calculateRecipeMacros()`, and `fmtNum()`. It iterates `gridState` respecting the same in-bounds logic as `updateSummary()`. The new window calls `window.print()` after writing the document so the browser print dialog fires automatically.
+Opens clean print-ready window (no chrome) with three sections:
 
-### Persistence (`localStorage`)
+1. **Summary** — plan config, daily average macros, cost/day and /week, per-variant breakdown table
+2. **Shopping List** — all ingredients aggregated (name, total quantity+unit, estimated cost), sorted alphabetically, grand total. Quantities rounded to nearest whole number.
+3. **Meal Prep Guide** — one block per unique recipe with `prepNotes`, showing total scaled ingredient amounts for the week (`multiplier × occurrences` summed across slots)
 
-All plan state is saved to `localStorage` under the key `bulk-meal-planner-v1` on every mutation. The stored JSON shape is:
+Reuses `computeOccurrences()`, `calculateRecipeMacros()`, `fmtNum()`. Iterates `gridState` with same in-bounds logic as `updateSummary()`. Calls `window.print()` after writing document.
+
+---
+
+## Persistence (`localStorage`)
+
+**Plan state** — key `bulk-meal-planner-v1` on every mutation:
 
 ```json
 {
-  "gridState": { "0-0": [{"entryId": 0, "recipeId": "chicken-rice", "multiplier": 1}], ... },
+  "gridState": { "0-0": [{"entryId": 0, "recipeId": "chicken-rice", "multiplier": 1}] },
   "nextEntryId": 3,
   "days": "7",
   "meals": "3",
@@ -140,110 +147,66 @@ All plan state is saved to `localStorage` under the key `bulk-meal-planner-v1` o
 }
 ```
 
-- `saveToStorage()` (in `calculations.js`) — serialises `gridState` (Map → plain object via `Object.fromEntries`) and the three input values, writes to `localStorage`.
-- `loadFromStorage()` (in `calculations.js`) — reads and JSON-parses; returns `null` on any error (missing key, malformed JSON).
-- `clearStorage()` (in `calculations.js`) — removes the key.
-- On `DOMContentLoaded`, `initGridFromStorage()` (in `grid-ui.js`) is called first; if data exists, inputs and `gridState` are restored before `renderMealGrid()` runs.
-- **Storage key versioning**: if the data shape ever changes in a breaking way, increment the version suffix (`-v2`, etc.) so old data is silently ignored rather than causing a parse error.
+- `saveToStorage()` — serialises `gridState` (Map→object via `Object.fromEntries`), writes to localStorage
+- `loadFromStorage()` — reads/parses, returns `null` on error
+- `clearStorage()` — removes key
+- `initGridFromStorage()` called on `DOMContentLoaded` before `renderMealGrid()`
 
-**Custom Recipe Storage** (recipes with user modifications):
-- Stored separately under key `bulk-meal-planner-recipes`
-- `saveCustomRecipe()`, `getCustomRecipe()`, `deleteCustomRecipe()` in `calculations.js`
-- `isRecipeModified()` checks if a recipe has been customized
+**Storage key versioning** — increment suffix (`-v2`, etc.) on breaking changes to ignore old data.
 
-**Custom Recipe Creation & Editing** (via edit modal):
-- Users can create new recipes via the `+ New Recipe` button in the sidebar (button label swaps with the active sidebar view)
-- Users can edit existing recipes via the pencil icon on recipe cards
-- Modal allows: editing title, serving size, adding/removing ingredients, adjusting amounts
-- Adding ingredients opens a search typeahead that filters `INGREDIENTS` by name (custom ingredients included)
-- New recipes get auto-generated IDs (slugified title + timestamp)
-- New recipes are pushed to `ALL_RECIPES` array at runtime and persisted to custom storage
-- Delete button appears only for custom/modified recipes (not base recipes)
-- Revert button restores original base recipe by deleting custom override
-- Recipe changes trigger `onRecipeModifiedCallback` which refreshes list, grid, and summary
+**Custom recipes** — key `bulk-meal-planner-recipes`. Functions: `saveCustomRecipe()`, `getCustomRecipe()`, `deleteCustomRecipe()`, `isRecipeModified()`.
 
-**Custom Ingredient Creation & Editing** (via ingredient modal):
-- Stored under `localStorage` key `bulk-meal-planner-ingredients` as a flat object keyed by id
-- Loaded into `INGREDIENTS` at startup via `mergeCustomIngredientsIntoIngredients()` in `src/data.js`
-- Modal supports both "Per 100g" and "Per serving" macro entry; values are normalized to `macrosPer100g` on save
-- Price entry supports "Per unit" or "Per serving" — normalized to `pricePerUnit` on save
-- Category field is a free-text input with autocomplete suggestions drawn from the live union of recipe + ingredient categories plus defaults `meal`, `drink`, `snack`
-- "Also add as a recipe" checkbox toggles `isRecipe` — adds/removes a single-ingredient recipe in `ALL_RECIPES`
-- **Base ingredients are read-only** — they have no `custom: true` flag, so the ingredient cards omit the edit pencil and the modal cannot be opened for them
-- Delete is blocked when the ingredient is referenced by any non-auto-generated recipe (the modal shows the blocking recipes inline)
-- Ingredient changes trigger `onIngredientChangedCallback` which re-renders the active sidebar, grid, and summary (since recipe macros depend on ingredient data)
+**Custom ingredients** — key `bulk-meal-planner-ingredients` (flat object keyed by id). Loaded via `mergeCustomIngredientsIntoIngredients()` in `src/data.js`.
 
-### Number Formatting (`fmtNum`)
-- `fmtNum(num)` — 2 significant figures (e.g. 321 → "320", 1.5 → "1.5")
-- `fmtNum(num, true)` — nearest cent with `$` prefix (e.g. `$1.88`)
+**Edit modal behavior**:
+- Recipes: create via `+ New Recipe` button, edit via pencil icon. Modal edits title, serving size, ingredients (search typeahead), amounts. New recipes get slugified ID + timestamp, pushed to `ALL_RECIPES`, persisted. Delete/revert only for custom/modified recipes. Changes trigger `onRecipeModifiedCallback` → refresh list, grid, summary.
+- Ingredients: modal supports "Per 100g" or "Per serving" macro entry (normalizes to `macrosPer100g`), price entry normalizes to `pricePerUnit`. Category field has autocomplete from union of recipe+ingredient categories + defaults `meal`, `drink`, `snack`. "Also add as a recipe" toggles `isRecipe`. **Base ingredients read-only** (no `custom: true` flag). Delete blocked when referenced by non-auto-generated recipes (blocking recipes shown inline). Changes trigger `onIngredientChangedCallback` → re-render sidebar, grid, summary.
 
 ---
 
-## Sidebar View Toggle
+## Sidebar & Categories
 
-The left sidebar has a `#view-toggle` dropdown at the top with two values:
-- `recipes` — shows draggable recipe cards (default). The `#recipes-subheader` (containing the category filter) is visible.
-- `ingredients` — shows non-draggable ingredient cards. The category filter is hidden.
+**View toggle** (`#view-toggle`):
+- `recipes` — draggable recipe cards, `#recipes-subheader` (category filter) visible
+- `ingredients` — non-draggable ingredient cards, category filter hidden
 
-`main.js` owns the toggle wiring (`applyView`) and the `#btn-new-item` click handler — its label swaps between `New Recipe` / `New Ingredient` to match the active view.
+`main.js` owns toggle wiring (`applyView`) and `#btn-new-item` label swap.
 
-## Recipe Categories
-
-Recipes have a `category` field. When the Recipes view is active, a category dropdown filters the list. The dropdown options are populated at runtime by `populateCategoryDropdowns()` (in `ingredient-ui.js`) from the union of:
-1. All `category` values present in `ALL_RECIPES`
-2. Defaults: `meal`, `drink`, `snack`
-
-`renderRecipeList()` reads `#recipe-category` and filters `ALL_RECIPES` accordingly. `populateCategoryDropdowns()` runs at init and again whenever recipes or ingredients are modified, so any new category typed by a user during ingredient creation appears in the filter on the next render.
-
-**Auto-generated recipes** — When an ingredient has `isRecipe: true`, the generated recipe inherits the ingredient's `category`.
-
-All categories are functionally identical — they share drag-and-drop, gridState, macros, and print view. The category field is purely a UI filter.
-
-**To add a new category:** create a recipe (or a custom ingredient with `isRecipe: true`) using a new `category` string. The dropdown picks it up automatically.
+**Recipe categories** — dropdown populated at runtime by `populateCategoryDropdowns()` from union of all `ALL_RECIPES` `category` values + defaults (`meal`, `drink`, `snack`). `renderRecipeList()` filters by `#recipe-category`. Auto-generated recipes inherit ingredient `category`. All categories functionally identical; field is UI filter only. New categories appear automatically when created.
 
 ---
 
-## Adding a New Recipe
+## Adding Content
 
 ### Multi-Ingredient Recipe
-1. Add any new ingredients to `INGREDIENTS` in `src/data.js` following the existing schema
-2. Add the recipe object to `RECIPES` in `src/data.js`:
-   - `id`: unique kebab-case string
-   - `category`: `"meal"`, `"drink"`, `"snack"`, or any new category string
-   - `name`: display name
-   - `servingSize`: total grams/ml (1x serving)
-   - `ingredients`: array of `{ id, amount }` referencing INGREDIENTS keys
-   - `prepNotes`: one or two sentences for the print prep guide (or omit/empty for no prep section)
+1. Add ingredients to `INGREDIENTS` in `src/data.js`
+2. Add recipe to `RECIPES` in `src/data.js`:
+   ```javascript
+   {
+     id: string,           // unique kebab-case
+     category: string,     // "meal" | "drink" | "snack" | custom
+     name: string,
+     servingSize: number,
+     ingredients: [{ id, amount }],
+     prepNotes?: string
+   }
+   ```
 
-No other changes needed — recipes appear in the sidebar automatically under their category.
-
-### Single-Ingredient Recipe (Ingredient as Recipe)
-For simple items like "Whole Milk" or "Granola Bar" that don't need custom prep:
-
-1. Add the ingredient to `INGREDIENTS` in `src/data.js`:
-   - Include `isRecipe: true` to enable auto-generation
-   - Include `servingSize: <number>` (required when `isRecipe: true`)
-   - Include `category: "drink"`, `"snack"`, etc. (optional, defaults to "meal")
-   - Single-ingredient recipes have no `prepNotes` — they're excluded from the Meal Prep Guide in print view
-
-Example:
+### Single-Ingredient Recipe
+Add ingredient with `isRecipe: true`, `servingSize: <number>`, optional `category`:
 ```javascript
-"chewy-granola-bar": {
-  name: "Kirkland Granola Bar",
-  macrosPer100g: { calories: 417, protein: 4.2, carbs: 75, fat: 12.5 },
-  pricePerUnit: 0.00625,
-  unit: "g",
-  isRecipe: true,        // ← Auto-generates a recipe
-  servingSize: 24,       // ← Required for recipe generation
-  category: "snack"      // ← Optional, defaults to "meal"
+{
+  name: string,
+  macrosPer100g: { calories, protein, carbs, fat },
+  pricePerUnit: number,
+  unit: string,
+  isRecipe: true,
+  servingSize: number,
+  category?: string      // defaults to "meal"
 }
 ```
 
-This automatically creates a recipe with:
-- `id`: ingredient id (`"chewy-granola-bar"`)
-- `name`: ingredient name (`"Kirkland Granola Bar"`)
-- `ingredients`: `[{ id: "chewy-granola-bar", amount: 24 }]`
-- No `prepNotes` (empty section in print view)
+Auto-generates recipe with same `id`/`name`/`category`, `ingredients: [{ id, amount: servingSize }]`, no `prepNotes`.
 
 ---
 
@@ -251,86 +214,81 @@ This automatically creates a recipe with:
 
 ```
 src/
-├── data.js              # INGREDIENTS, ALL_RECIPES, RECIPES (ES module exports)
-├── state.js             # gridState Map, entry management, persistence helpers
-├── calculations.js      # calculateRecipeMacros, fmtNum, computeOccurrences, storage
-├── recipe-ui.js         # renderRecipeList, recipe edit modal, ingredient search (in-modal)
-├── ingredient-ui.js     # renderIngredientList, ingredient modal, category dropdowns
-├── grid-ui.js           # renderMealGrid, buildSlotCard, updateSummary
-├── print.js             # generatePrintView
-├── agent-ui.js          # Agent chat: conversation state, localStorage, filler loop, send/stop
-└── main.js              # Event wiring + initialization (thin glue)
+├── data.js
+├── state.js
+├── calculations.js
+├── recipe-ui.js
+├── ingredient-ui.js
+├── grid-ui.js
+├── print.js
+├── agent-ui.js
+└── main.js
 ```
 
-**Module Dependencies:**
+**Dependencies:**
 - `main.js` imports: state, calculations, recipe-ui, ingredient-ui, grid-ui, print, agent-ui
 - `grid-ui.js` imports: state, calculations, data
-- `recipe-ui.js` imports: calculations, data (no circular imports — uses callback pattern)
-- `ingredient-ui.js` imports: calculations, data (no circular imports — uses callback pattern)
+- `recipe-ui.js` imports: calculations, data (callback pattern, no circular)
+- `ingredient-ui.js` imports: calculations, data (callback pattern)
 - `print.js` imports: state, calculations, data
-- `agent-ui.js` is self-contained (no imports from other app modules)
+- `agent-ui.js` — self-contained
 - `calculations.js` imports: data
+
+---
 
 ## Styling
 
-All custom styles are in `css/` and split into seven logical layers: `tokens.css` (DaisyUI theme overrides / CSS custom properties), `base.css` (resets, typography, scrollbars, SortableJS helpers), `layout.css` (app shell regions), four `components-*.css` files (UI elements split by group), and `utilities.css` (empty-state helpers). See `css/style.md` for the full style guide, naming conventions, and import order. To add a new style, find the appropriate file based on its purpose; never add rules to `tokens.css` unless they are new custom properties.
+`css/` split into seven layers: `tokens.css` (DaisyUI overrides / CSS custom properties), `base.css` (resets, typography, scrollbars, SortableJS helpers), `layout.css` (app shell regions), four `components-*.css` (UI elements by group), `utilities.css` (empty-state helpers). See `css/style.md` for guide, naming, import order. Add new styles by purpose; never add to `tokens.css` unless new custom properties.
 
-## Agent Chat
+---
 
-The Agent tab in the left sidebar provides a conversational interface. It is initialized on first switch to the Agent tab (via `initAgentView()` in `main.js`).
+## Agent Chat (`src/agent-ui.js`)
 
-### Architecture (`src/agent-ui.js`)
+**Feature flag** — `AGENT_HISTORY_ON_RELOAD` at top of file controls localStorage history restore on load.
 
-**Feature flag** — `AGENT_HISTORY_ON_RELOAD` at the top of `agent-ui.js` controls whether `initAgentView()` restores conversation history from localStorage on page load. Set to `true` to re-enable; `false` starts each session with a blank conversation (persistence code is always active).
-
-**Conversation state** — a module-level `conversation` array (initially loaded from localStorage when `AGENT_HISTORY_ON_RELOAD` is `true`). Messages have this shape:
+**Conversation state** — module-level `conversation` array (loaded from localStorage when flag true):
 ```javascript
 { type: 'user' | 'agent' | 'tool_call' | 'tool_cluster', content, timestamp, thinking?, toolName?, params?, result? }
 ```
 
-**Storage** — conversation is persisted under `localStorage` key `bulk-meal-planner-conversation`. Every mutation (new message, cancelled thinking) triggers `saveConversation()`. History is only rehydrated into memory on page load if `AGENT_HISTORY_ON_RELOAD` is `true`.
+**Storage** — key `bulk-meal-planner-conversation`. Every mutation triggers `saveConversation()`.
 
-**OpenRouter integration** — `callOpenRouter(userMessage)` handles the full message flow:
-1. Reads `apiKey` and `model` from agent settings (`loadAgentSettings()`).
-2. Falls back to an inline error message if no API key is configured.
-3. Builds a `messages` array from the last `AGENT_CONTEXT_WINDOW` (20) conversation turns and POSTs to `https://openrouter.ai/api/v1/chat/completions` with `stream: true`. The API key is passed through `toAscii()` before use to strip non-ASCII characters (e.g. em-dashes) that would cause a `ByteString` header conversion error.
-4. After a 400ms delay shows a "Thinking…" bubble; the bubble's text is updated in-place as the stream delivers delta chunks, giving live-response feedback.
-5. On completion, the thinking bubble is replaced with the final `content` string. On error, an error message is appended.
-6. `cancelAgentTask()` calls `abortController.abort()` to cancel the in-flight fetch, and removes the thinking node from both DOM and state.
+**OpenRouter** — `callOpenRouter(userMessage)`:
+1. Reads `apiKey`, `model` from agent settings (`loadAgentSettings()`)
+2. Falls back to inline error if no API key
+3. Builds messages from last `AGENT_CONTEXT_WINDOW` (20) turns, POSTs to `https://openrouter.ai/api/v1/chat/completions` with `stream: true`. API key passed through `toAscii()` to strip non-ASCII
+4. After 400ms delay shows "Thinking…" bubble, updates in-place from stream
+5. On completion replaces bubble with final `content`, appends error on failure
+6. `cancelAgentTask()` calls `abortController.abort()`, removes thinking node from DOM and state
 
-**Send / Stop button** — `#agent-send` toggles between:
-- **Send** (paper plane icon): appends user message, calls `callOpenRouter()`.
-- **Stop** (square icon, warm amber background): calls `cancelAgentTask()`.
+**Send/Stop button** — `#agent-send` toggles: Send (paper plane) appends message → calls `callOpenRouter()`; Stop (square, amber) calls `cancelAgentTask()`. Enter key in `#agent-input` triggers send. Empty messages ignored.
 
-Enter key in `#agent-input` also triggers send. Empty messages are ignored.
+**Settings button** — `#agent-settings-btn` (gear icon) opens `#agent-settings-modal` (<dialog>). Contains: masked `#agent-api-key` input, `#agent-model-select` dropdown (populated with static models, disabled until key typed). Save persists `{ apiKey, model }` to `bulk-meal-planner-agent-settings`. Wired in `initAgentSettings()`.
 
-**Settings button** — a gear icon (`#agent-settings-btn`) sits immediately left of the message input, inside the `.agent-input-row`. On click it opens `#agent-settings-modal`, a `<dialog>` driven by DaisyUI. The modal contains:
-- A masked text input (`#agent-api-key`) for the OpenRouter API key.
-- A model dropdown (`#agent-model-select`) populated with a static list of popular OpenRouter models. Disabled until the user types a key.
-- Save persists `{ apiKey, model }` to localStorage under `bulk-meal-planner-agent-settings`. Cancel closes without persisting.
-- Wiring lives in `initAgentSettings()` (in `agent-ui.js`), called from `initAgentView()` with a guard to avoid duplicate event listeners.
+**Rendering** — `renderAgentMessages(messages)` groups consecutive `tool_call` into `tool_cluster`, renders all. `addAgentMessage(msg)` appends single message. `renderMessage()` updates thinking bubble in-place.
 
-**Rendering** — `renderAgentMessages(messages)` groups consecutive `tool_call` entries into `tool_cluster` groups, then renders all. `addAgentMessage(msg)` appends a single message. `renderMessage()` handles the `thinking` flag by updating the bubble text in-place.
-
-### Exports
-
+**Exports:**
 ```javascript
-export function initAgentView()       // Load history (if flag enabled), wire up send/stop, show placeholder if empty
-export function renderAgentMessages() // Full re-render (used by initAgentView)
-export function addAgentMessage()     // Append a single message (used by agent loop)
-export function clearAgentConversation() // Clear in-memory state + localStorage (not wired to UI yet)
+export function initAgentView()
+export function renderAgentMessages()
+export function addAgentMessage()
+export function clearAgentConversation()
 ```
 
-### Known Gaps / TODO
+---
 
-- **Drag reorder doesn't sync to gridState** — cosmetic only, doesn't affect calculations
-- **Mobile not optimized** — desktop-first per SPEC
-- **ES modules required** — all scripts now use ES module imports/exports, requires modern browser
-- **Agent cannot call tools** — `callOpenRouter()` only returns text; tool-use protocol not yet implemented
-- **No "Clear chat" button** — `clearAgentConversation()` exists but has no UI trigger yet.
+## Known Gaps
 
-## Print View Behavior
+- Drag reorder doesn't sync to gridState (cosmetic only)
+- Mobile not optimized (desktop-first per SPEC)
+- ES modules required (modern browser)
+- Agent cannot call tools (text-only protocol)
+- No "Clear chat" button (function exists, no UI trigger)
 
-- **Meal Prep Guide** — Only includes recipes that have `prepNotes` defined. Single-ingredient recipes (drinks, snacks) have no prep notes and are excluded from this section to keep the printout clean.
-- **Shopping List** — Includes all ingredients from all recipes, including single-ingredient auto-generated ones.
-- **Daily Meal Schedule** — Shows all recipes used in the plan, regardless of prep notes.
+---
+
+## Print View Behavior Notes
+
+- **Meal Prep Guide** — only recipes with `prepNotes`. Single-ingredient recipes excluded.
+- **Shopping List** — all ingredients from all recipes, including auto-generated.
+- **Daily Meal Schedule** — shows all recipes used, regardless of prep notes.
