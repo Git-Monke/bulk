@@ -489,15 +489,11 @@ function renderMessage(msg) {
       <div class="agent-msg tool-cluster" data-tools="${count}">
         <div class="agent-msg-header">
           <span class="agent-tool-count">${count} tool${count > 1 ? 's' : ''}</span>
-          <svg class="agent-tool-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
+          <i data-lucide="chevron-down" class="agent-tool-expand w-4 h-4"></i>
         </div>
         <div class="agent-msg-bubble">
           <div class="agent-tool-header">
-            <svg class="agent-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-            </svg>
+            <i data-lucide="wrench" class="agent-tool-icon w-4 h-4"></i>
             <span class="agent-tool-label">Agent ran ${count} tool${count > 1 ? 's' : ''}</span>
           </div>
           <div class="agent-tool-details">
@@ -534,6 +530,9 @@ export function renderAgentMessages(messages) {
 
   const grouped = groupToolCalls(messages);
   container.innerHTML = grouped.map(renderMessage).join('');
+
+  // Initialize Lucide icons for newly rendered content
+  lucide.createIcons();
 
   // Add click handlers for tool clusters
   container.querySelectorAll('.agent-msg.tool-cluster').forEach(cluster => {
@@ -626,18 +625,13 @@ export function initAgentView() {
     container.innerHTML = `
       <div class="agent-placeholder">
         <div class="agent-placeholder-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 8V4H8"></path>
-            <rect x="2" y="2" width="20" height="20" rx="5"></rect>
-            <path d="M9 12a2 2 0 1 0 3.535-1.536L14 12l-1.465-1.536A2 2 0 0 0 9 12"></path>
-            <path d="M15 16v2"></path>
-            <path d="M15 12a2 2 0 1 0 3.535-1.536L20 12l-1.465-1.536A2 2 0 0 0 15 12"></path>
-          </svg>
+          <i data-lucide="bot" class="w-12 h-12"></i>
         </div>
         <div class="agent-placeholder-title">Start a conversation</div>
         <div class="agent-placeholder-sub">Configure your OpenRouter API key in ⚙ settings, then send a message to begin.</div>
       </div>
     `;
+    lucide.createIcons();
   } else {
     renderAgentMessages(conversation);
   }

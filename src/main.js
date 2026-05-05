@@ -123,6 +123,9 @@ function rerenderActiveSidebar() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize Lucide icons
+  lucide.createIcons();
+
   // Merge persisted custom data into the in-memory stores.
   loadCustomRecipesIntoAll();
   mergeCustomIngredientsIntoIngredients();

@@ -27,6 +27,7 @@
   color: var(--c-faint);
 }
 .empty-icon svg { width: 28px; height: 28px; }
+.empty-icon i[data-lucide] { width: 28px; height: 28px; }
 .empty-title {
   font-size: 16px;
   font-weight: 700;

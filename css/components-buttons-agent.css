@@ -110,6 +110,10 @@
     width: 28px;
     height: 28px;
 }
+.agent-placeholder-icon i[data-lucide] {
+    width: 28px;
+    height: 28px;
+}
 .agent-placeholder-title {
     font-size: 15px;
     font-weight: 700;
