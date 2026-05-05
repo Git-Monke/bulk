@@ -167,6 +167,12 @@
   min-height: 0;
 }
 
+.sidebar-content.hidden,
+#manual-view.hidden,
+#agent-view.hidden {
+  display: none !important;
+}
+
 /* ============================================================
    Main grid area / day columns / meal slots
    ============================================================ */
