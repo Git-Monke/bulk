@@ -2,6 +2,26 @@
 // MAIN APPLICATION ENTRY
 // ============================================
 
+// Import CSS (Tailwind + DaisyUI processed via PostCSS, then custom CSS)
+import './styles.css';
+import '../css/tokens.css';
+import '../css/base.css';
+import '../css/layout.css';
+import '../css/components-buttons-agent.css';
+import '../css/components-cards.css';
+import '../css/components-slots.css';
+import '../css/components-panels.css';
+import '../css/utilities.css';
+
+// Import modules that provide globals (lucide, sortable)
+import { createIcons, icons } from 'lucide';
+import Sortable from 'sortablejs';
+
+// Make available globally for modules that use them
+window.icons = icons;
+window.createIcons = createIcons;
+window.Sortable = Sortable;
+
 // Import modules
 import {
   renderRecipeList,
@@ -124,7 +144,7 @@ function rerenderActiveSidebar() {
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize Lucide icons
-  lucide.createIcons();
+  createIcons({ icons });
 
   // Merge persisted custom data into the in-memory stores.
   loadCustomRecipesIntoAll();

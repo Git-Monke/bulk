@@ -1,0 +1,4 @@
+/* Tailwind + DaisyUI base imports */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

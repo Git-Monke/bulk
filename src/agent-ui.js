@@ -532,7 +532,7 @@ export function renderAgentMessages(messages) {
   container.innerHTML = grouped.map(renderMessage).join('');
 
   // Initialize Lucide icons for newly rendered content
-  lucide.createIcons();
+  createIcons({ icons });
 
   // Add click handlers for tool clusters
   container.querySelectorAll('.agent-msg.tool-cluster').forEach(cluster => {
@@ -631,7 +631,7 @@ export function initAgentView() {
         <div class="agent-placeholder-sub">Configure your OpenRouter API key in ⚙ settings, then send a message to begin.</div>
       </div>
     `;
-    lucide.createIcons();
+    createIcons({ icons });
   } else {
     renderAgentMessages(conversation);
   }
