@@ -1,6 +1,6 @@
 import { initIcons } from './lucide-init.js';
 import { gridState } from './state.js';
-import { getRecipe, calculateRecipeMacros, computeOccurrences, loadGoals, fmtNum } from './calculations.js';
+import { getRecipe, calculateRecipeMacros, computeOccurrences, loadGoals, fmtNum, checkGoal } from './calculations.js';
 
 // ============================================================
 // Feature flags
@@ -159,6 +159,123 @@ function deepEqual(a, b) {
  */
 function snapshotChanged(current) {
   return lastSnapshot === null || !deepEqual(current, lastSnapshot);
+}
+
+// ============================================================
+// State message formatting
+// ============================================================
+
+/**
+ * Goal label display helper.
+ * Returns a human-readable string like "Calories (2500-3000)", "Protein (≥150)", "Fat (no goal)".
+ */
+function goalLabel(name, goal) {
+  if (goal.atLeast === null && goal.atMost === null) return `${name} (no goal)`;
+  const parts = [];
+  if (goal.atLeast !== null) parts.push(`≥${goal.atLeast}`);
+  if (goal.atMost !== null) parts.push(`≤${goal.atMost}`);
+  return `${name} (${parts.join(' ')})`;
+}
+
+/**
+ * Goal status icon.
+ */
+function goalIcon(actual, goal) {
+  const status = checkGoal(actual, goal);
+  if (status === 'ok') return '✓';
+  if (status === 'violated') return '❌';
+  return '(no goal)';
+}
+
+/**
+ * Format a plan snapshot into a token-efficient human-readable text block.
+ * The output starts with "STATE_UPDATE\n" — the caller prepends the prefix.
+ *
+ * @param {object} snapshot - returned by capturePlanSnapshot()
+ * @returns {string} formatted state text (without STATE_UPDATE prefix)
+ */
+function formatStateMessage(snapshot) {
+  const { days, variants, mealsPerDay, goals, perVariant, dailyAverage } = snapshot;
+  const lines = [];
+
+  lines.push(`Plan: ${days} days, ${variants} variants, ${mealsPerDay} meals/day`);
+  lines.push('');
+
+  for (const variant of perVariant) {
+    const occLabel = `Day ${variant.label} (×${variant.occurrences})`;
+    lines.push(`${occLabel}:`);
+
+    for (const meal of variant.meals) {
+      if (meal.entries.length === 0) {
+        lines.push(`  Meal ${meal.meal}: (empty)`);
+      } else {
+        for (const entry of meal.entries) {
+          const weightUnit = 'g';
+          const price = fmtNum(entry.price, true);
+          const kcal = fmtNum(entry.macros.calories);
+          const protein = fmtNum(entry.macros.protein);
+          const carbs = fmtNum(entry.macros.carbs);
+          const fat = fmtNum(entry.macros.fat);
+          const weight = fmtNum(entry.servingWeight);
+          const mult = entry.multiplier.toFixed(1);
+          lines.push(`  Meal ${meal.meal}: ${entry.recipeName} ${mult}× — ${kcal} kcal | ${protein}g P | ${carbs}g C | ${fat}g F | ${weight}${weightUnit} | ${price}`);
+        }
+      }
+    }
+
+    const dCal = fmtNum(variant.dailyTotals.calories);
+    const dPro = fmtNum(variant.dailyTotals.protein);
+    const dCarb = fmtNum(variant.dailyTotals.carbs);
+    const dFat = fmtNum(variant.dailyTotals.fat);
+    const dPrice = fmtNum(variant.dailyTotals.price, true);
+    lines.push(`  Daily: ${dCal} kcal | ${dPro}g P | ${dCarb}g C | ${dFat}g F | ${dPrice}`);
+    lines.push('');
+  }
+
+  // Daily average
+  const aCal = fmtNum(dailyAverage.calories);
+  const aPro = fmtNum(dailyAverage.protein);
+  const aCarb = fmtNum(dailyAverage.carbs);
+  const aFat = fmtNum(dailyAverage.fat);
+  const aPrice = fmtNum(dailyAverage.price, true);
+  lines.push(`Daily Average (across ${days} days): ${aCal} kcal | ${aPro}g P | ${aCarb}g C | ${aFat}g F | ${aPrice}`);
+
+  // Goals
+  const goalParts = [];
+  for (const [name, goalInfo] of Object.entries(goals)) {
+    const label = name.charAt(0).toUpperCase() + name.slice(1);
+    const actual = dailyAverage[name];
+    const icon = goalIcon(actual, goalInfo);
+    const goalDesc = goalLabel(label, goalInfo);
+    goalParts.push(`${goalDesc} ${icon}`);
+  }
+  lines.push(`Goals: ${goalParts.join(' | ')}`);
+
+  return lines.join('\n');
+}
+
+/**
+ * Detect if the plan state has changed since the last state update message.
+ * If it has, capture a fresh snapshot, format a state update message,
+ * and append it to the conversation (both in-memory and localStorage).
+ *
+ * Always updates `lastSnapshot` so subsequent calls don't duplicate.
+ */
+function maybeAppendStateUpdate() {
+  const snapshot = capturePlanSnapshot();
+  const changed = snapshotChanged(snapshot);
+  // Update lastSnapshot regardless — always track most recent state
+  lastSnapshot = snapshot;
+
+  if (!changed) return;
+
+  const content = formatStateMessage(snapshot);
+  const stateMsg = {
+    type: 'state',
+    content: `STATE_UPDATE\n${content}`,
+    timestamp: now()
+  };
+  pushMessage(stateMsg);
 }
 
 // ============================================================
