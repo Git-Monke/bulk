@@ -14,6 +14,12 @@ import { getRecipe, calculateRecipeMacros, computeOccurrences, loadGoals, fmtNum
 const AGENT_HISTORY_ON_RELOAD = false;
 
 // ============================================================
+// System prompt (injected as role: 'system' in OpenRouter calls)
+// ============================================================
+
+const SYSTEM_PROMPT = 'You are a meal planning assistant. You help users plan, adjust, and analyse meal plans using the Bulk Meal Planner.';
+
+// ============================================================
 // State snapshot
 // ============================================================
 
@@ -189,10 +195,10 @@ function goalIcon(actual, goal) {
 
 /**
  * Format a plan snapshot into a token-efficient human-readable text block.
- * The output starts with "STATE_UPDATE\n" — the caller prepends the prefix.
+ * The caller wraps the result in an XML <state_update> block.
  *
  * @param {object} snapshot - returned by capturePlanSnapshot()
- * @returns {string} formatted state text (without STATE_UPDATE prefix)
+ * @returns {string} formatted state text (content only, no wrapper)
  */
 function formatStateMessage(snapshot) {
   const { days, variants, mealsPerDay, goals, perVariant, dailyAverage } = snapshot;
@@ -271,8 +277,8 @@ function maybeAppendStateUpdate() {
 
   const content = formatStateMessage(snapshot);
   const stateMsg = {
-    type: 'state',
-    content: `STATE_UPDATE\n${content}`,
+    type: 'user',
+    content: `<state_update>This is an automated state update the user cannot see: \n${content}\n</state_update>`,
     timestamp: now()
   };
   pushMessage(stateMsg);
@@ -473,11 +479,15 @@ function callOpenRouter(userMessage) {
   currentTask = task;
 
   // Build the messages array from the last AGENT_CONTEXT_WINDOW exchanges
+  // Prepend system prompt as a system-role message
   const recent = conversation.slice(-AGENT_CONTEXT_WINDOW);
-  const messages = recent.map(msg => ({
-    role: msg.type === 'user' ? 'user' : 'assistant',
-    content: msg.content
-  }));
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...recent.map(msg => ({
+      role: msg.type === 'user' ? 'user' : 'assistant',
+      content: msg.content
+    }))
+  ];
 
   // Show thinking state after a brief delay
   const thinkTimeout = setTimeout(() => {
@@ -647,6 +657,9 @@ function handleSendClick() {
   pushMessage(userMsg);
   addAgentMessage(userMsg);
 
+  // Append a fresh plan state snapshot before talking to the model
+  maybeAppendStateUpdate();
+
   // Start the OpenRouter agent loop
   updateSendButton(true);
   callOpenRouter(content);
@@ -784,13 +797,16 @@ function renderMessage(msg) {
 
 /**
  * Render all messages in the agent view.
+ * State-type messages are excluded from the DOM.
  * Scrolls to bottom only if already at the bottom.
  */
 export function renderAgentMessages(messages) {
   const container = document.getElementById('agent-messages');
   if (!container) return;
 
-  const grouped = groupToolCalls(messages);
+  // Filter out state update messages — they carry structured plan context, not user/agent dialogue
+  const visible = messages.filter(m => !m.content?.startsWith('<state_update>'));
+  const grouped = groupToolCalls(visible);
   container.innerHTML = grouped.map(renderMessage).join('');
 
   // Initialize Lucide icons for newly rendered content
@@ -831,10 +847,14 @@ function isAtBottom(container, tolerance = 80) {
 
 /**
  * Add a single message and scroll (only if already at bottom).
+ * State-type messages are silently skipped (not rendered).
  */
 export function addAgentMessage(msg) {
   const container = document.getElementById('agent-messages');
   if (!container) return;
+
+  // Skip state update messages — they are injected for model context, not for display
+  if (msg.content?.startsWith('<state_update>')) return;
 
   // Remove the "Start a conversation" placeholder on the first real message
   const placeholder = container.querySelector('.agent-placeholder');
