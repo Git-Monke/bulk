@@ -2,8 +2,8 @@
 
 ## Task List
 
-- [ ] 1. Add `capturePlanSnapshot()` — build structured state object from DOM + gridState + goals
-- [ ] 2. Add `snapshotChanged(current)` — deep equality compare against `lastSnapshot`
+- [X] 1. Add `capturePlanSnapshot()` — build structured state object from DOM + gridState + goals
+- [X] 2. Add `snapshotChanged(current)` — deep equality compare against `lastSnapshot`
 - [ ] 3. Add `maybeAppendStateUpdate()` — detect change, format + append state message
 - [ ] 4. Add `formatStateMessage(snapshot)` — token-efficient human-readable text
 - [ ] 5. Filter state messages out of rendering (`renderAgentMessages` / `addAgentMessage`)

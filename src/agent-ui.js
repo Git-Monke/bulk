@@ -113,6 +113,54 @@ function capturePlanSnapshot() {
   };
 }
 
+/**
+ * Deep equality check for two primitive or plain-object values.
+ * Handles numbers, strings, booleans, null, undefined, plain objects, and arrays.
+ * Does not handle Date, Map, Set, or circular references — snapshot data
+ * is small (max ~20 entries) and uses only plain objects/arrays/primitives.
+ *
+ * @param {*} a
+ * @param {*} b
+ * @returns {boolean} true if deeply equal
+ */
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (a === null || b === null) return a === b;
+  if (typeof a !== typeof b) return false;
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!deepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  if (typeof a === 'object') {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    for (const key of keysA) {
+      if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+      if (!deepEqual(a[key], b[key])) return false;
+    }
+    return true;
+  }
+
+  return a === b;
+}
+
+/**
+ * Compare a fresh snapshot to the module-level `lastSnapshot`.
+ * Returns true when the plan state has changed (or no prior snapshot exists).
+ *
+ * @param {object} current - snapshot returned by capturePlanSnapshot()
+ * @returns {boolean} true if the state has changed
+ */
+function snapshotChanged(current) {
+  return lastSnapshot === null || !deepEqual(current, lastSnapshot);
+}
+
 // ============================================================
 // Agent settings state
 // ============================================================
