@@ -1,4 +1,6 @@
 import { initIcons } from './lucide-init.js';
+import { gridState } from './state.js';
+import { getRecipe, calculateRecipeMacros, computeOccurrences, loadGoals, fmtNum } from './calculations.js';
 
 // ============================================================
 // Feature flags
@@ -10,6 +12,106 @@ import { initIcons } from './lucide-init.js';
  * Set to true to re-enable history persistence on reload.
  */
 const AGENT_HISTORY_ON_RELOAD = false;
+
+// ============================================================
+// State snapshot
+// ============================================================
+
+/** @type {object | null} */
+let lastSnapshot = null;
+
+/**
+ * Capture a structured snapshot of the current plan state.
+ * Reads from DOM inputs, gridState, and goals.
+ *
+ * @returns {object} snapshot with days, variants, mealsPerDay, goals,
+ *   perVariant array, and dailyAverage totals.
+ */
+function capturePlanSnapshot() {
+  const days = parseInt(document.getElementById('input-days')?.value || '7', 10);
+  const variants = parseInt(document.getElementById('input-variants')?.value || '3', 10);
+  const mealsPerDay = parseInt(document.getElementById('input-meals')?.value || '3', 10);
+  const goals = loadGoals();
+  const occurrences = computeOccurrences(days, variants);
+
+  const variantLabels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const perVariant = [];
+  const grandTotal = { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
+
+  for (let v = 0; v < variants; v++) {
+    const occ = occurrences[v];
+    const dailyTotals = { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
+    const meals = [];
+
+    for (let m = 0; m < mealsPerDay; m++) {
+      const entries = gridState.get(`${v}-${m}`) || [];
+
+      const mealEntries = entries.map(entry => {
+        const recipe = getRecipe(entry.recipeId);
+        if (!recipe) return null;
+        const macros = calculateRecipeMacros(recipe, entry.multiplier);
+        return {
+          recipeId: recipe.id,
+          recipeName: recipe.name,
+          multiplier: entry.multiplier,
+          macros: {
+            calories: macros.calories,
+            protein: macros.protein,
+            carbs: macros.carbs,
+            fat: macros.fat
+          },
+          servingWeight: recipe.servingSize * entry.multiplier,
+          price: macros.price
+        };
+      }).filter(Boolean);
+
+      for (const entry of mealEntries) {
+        dailyTotals.calories += entry.macros.calories;
+        dailyTotals.protein += entry.macros.protein;
+        dailyTotals.carbs += entry.macros.carbs;
+        dailyTotals.fat += entry.macros.fat;
+        dailyTotals.price += entry.price;
+      }
+
+      meals.push({
+        meal: m + 1,
+        entries: mealEntries
+      });
+    }
+
+    grandTotal.calories += dailyTotals.calories * occ;
+    grandTotal.protein += dailyTotals.protein * occ;
+    grandTotal.carbs += dailyTotals.carbs * occ;
+    grandTotal.fat += dailyTotals.fat * occ;
+    grandTotal.price += dailyTotals.price * occ;
+
+    perVariant.push({
+      label: variantLabels[v] || `${v + 1}`,
+      occurrences: occ,
+      dailyTotals,
+      meals
+    });
+  }
+
+  const dailyAverage = days > 0
+    ? {
+        calories: grandTotal.calories / days,
+        protein: grandTotal.protein / days,
+        carbs: grandTotal.carbs / days,
+        fat: grandTotal.fat / days,
+        price: grandTotal.price / days
+      }
+    : { calories: 0, protein: 0, carbs: 0, fat: 0, price: 0 };
+
+  return {
+    days,
+    variants,
+    mealsPerDay,
+    goals,
+    perVariant,
+    dailyAverage
+  };
+}
 
 // ============================================================
 // Agent settings state
