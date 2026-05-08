@@ -1,6 +1,8 @@
 node_modules
 TEST_THEME.txt
 PLAN.md
+plans/
 FEEDBACK.md
 PROMPT_WRITING.md
 .pi
+bullshit.js
