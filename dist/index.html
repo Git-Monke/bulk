@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
   <!-- Google Fonts already loaded above -->
-  <script type="module" crossorigin src="/assets/index-BjDlj3hq.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BTnHrLOu.css">
+  <script type="module" crossorigin src="/assets/index-CyQS4Egm.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-g-xUwdKK.css">
 </head>
 <body class="min-h-screen bg-base-200 antialiased">
 
@@ -218,6 +218,7 @@
           <label class="ing-label" for="agent-model-select">Model</label>
           <select id="agent-model-select" class="select-pill w-full" disabled>
             <option value="">Select a model…</option>
+            <option value="xiaomi/mimo-v2-flash">Mimo</option>
             <option value="qwen/qwen3.6-35b-a3b">Qwen 3.6</option>
             <option value="minimax/minimax-m2.7:nitro">Minimax 2.7</option>
           </select>
@@ -329,6 +330,135 @@
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
   </dialog>
 
+  <!-- TDEE Calculator Modal -->
+  <dialog id="goals-calc-modal" class="modal">
+    <div class="modal-box max-w-md">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold">TDEE & Macro Calculator</h3>
+        <button id="goals-calc-modal-close" class="btn btn-sm btn-ghost btn-square" aria-label="Close">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-stone-500">Metric</span>
+          <input type="checkbox" id="calc-units-toggle" class="toggle toggle-sm toggle-primary">
+          <span class="text-xs text-stone-500">Imperial</span>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="ing-grid">
+          <div class="ing-field">
+            <label class="ing-label">Age</label>
+            <input type="number" id="calc-age" class="input input-bordered input-sm w-full" placeholder="25">
+          </div>
+          <div class="ing-field">
+            <label class="ing-label">Gender</label>
+            <select id="calc-gender" class="select select-bordered select-sm w-full">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="calc-metric-fields">
+          <div class="ing-grid">
+            <div class="ing-field">
+              <label class="ing-label">Height (cm)</label>
+              <input type="number" id="calc-height-cm" class="input input-bordered input-sm w-full" placeholder="175">
+            </div>
+            <div class="ing-field">
+              <label class="ing-label">Weight (kg)</label>
+              <input type="number" id="calc-weight-kg" class="input input-bordered input-sm w-full" placeholder="75">
+            </div>
+          </div>
+        </div>
+
+        <div id="calc-imperial-fields" class="hidden">
+          <div class="ing-grid">
+            <div class="ing-field">
+              <label class="ing-label">Height</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="calc-height-ft" class="input input-bordered input-sm w-16" placeholder="ft">
+                <span class="text-stone-400 text-xs">ft</span>
+                <input type="number" id="calc-height-in" class="input input-bordered input-sm w-16" placeholder="in">
+                <span class="text-stone-400 text-xs">in</span>
+              </div>
+            </div>
+            <div class="ing-field">
+              <label class="ing-label">Weight (lbs)</label>
+              <input type="number" id="calc-weight-lbs" class="input input-bordered input-sm w-full" placeholder="165">
+            </div>
+          </div>
+        </div>
+
+        <div class="ing-field">
+          <label class="ing-label">Activity level</label>
+          <select id="calc-activity" class="select select-bordered select-sm w-full">
+            <option value="1.2">Sedentary — desk job, little exercise</option>
+            <option value="1.375">Light — 1-2 workouts/week</option>
+            <option value="1.55" selected>Moderate — 3-5 workouts/week</option>
+            <option value="1.725">Active — 6-7 hard workouts/week</option>
+            <option value="1.9">Very active — physical job + training</option>
+          </select>
+        </div>
+
+        <div class="ing-field">
+          <label class="ing-label">Weekly goal (lbs/week)</label>
+          <div class="flex items-center gap-2">
+            <input type="number" id="calc-goal-lbs" class="input input-bordered input-sm w-24" placeholder="0" step="0.25" value="0">
+            <span class="text-sm text-stone-500">Positive = gain, negative = lose</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 pt-4 border-t border-base-300">
+        <button id="calc-calculate-btn" class="btn btn-primary w-full">
+          <i data-lucide="calculator" class="w-4 h-4"></i>
+          Calculate
+        </button>
+      </div>
+
+      <div id="calc-results" class="calc-results hidden mt-4">
+        <div class="calc-results-header">Suggested Daily Targets</div>
+        <div class="calc-results-grid">
+          <div class="calc-result-item">
+            <span class="calc-result-label">Calories</span>
+            <span class="calc-result-value">
+              <span id="calc-result-cal-min">0</span> – <span id="calc-result-cal-max">0</span>
+            </span>
+          </div>
+          <div class="calc-result-item">
+            <span class="calc-result-label">Protein (g)</span>
+            <span class="calc-result-value">
+              <span id="calc-result-protein-min">0</span> – <span id="calc-result-protein-max">0</span>
+            </span>
+          </div>
+          <div class="calc-result-item">
+            <span class="calc-result-label">Carbs (g)</span>
+            <span class="calc-result-value">
+              <span id="calc-result-carbs-min">0</span> – <span id="calc-result-carbs-max">0</span>
+            </span>
+          </div>
+          <div class="calc-result-item">
+            <span class="calc-result-label">Fat (g)</span>
+            <span class="calc-result-value">
+              <span id="calc-result-fat-min">0</span> – <span id="calc-result-fat-max">0</span>
+            </span>
+          </div>
+        </div>
+        <p id="calc-results-note" class="text-xs text-stone-500 mt-2"></p>
+        <button id="calc-apply-btn" class="btn btn-accent w-full mt-3">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          Apply to goals
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+
   <!-- Main Layout -->
   <div class="flex h-[calc(100vh-72px)]">
 
@@ -422,6 +552,9 @@
       <!-- Daily Average Card -->
       <section class="summary-card">
         <header class="summary-card-header">
+          <button id="goals-calculator-btn" class="goals-settings-btn" aria-label="TDEE Calculator" title="TDEE Calculator">
+            <i data-lucide="calculator" class="w-4 h-4"></i>
+          </button>
           <span>Daily average</span>
           <button id="goals-settings-btn" class="goals-settings-btn" aria-label="Goal Settings" title="Set goals">
             <i data-lucide="settings" class="w-4 h-4"></i>

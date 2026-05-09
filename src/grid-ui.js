@@ -262,9 +262,11 @@ export function updateSummary() {
     const goalStatus = checkGoal(value, goal);
     let goalText = '';
 
-    if (goal.atLeast !== null || goal.atMost !== null) {
+    if (Object.is(goal.atLeast, goal.atMost) && goal.atLeast !== null) {
+      goalText = ` (${goal.atLeast}${unit})`;
+    } else if (goal.atLeast !== null || goal.atMost !== null) {
       if (goal.atLeast !== null && goal.atMost !== null) {
-        goalText = ` (${goal.atLeast}-${goal.atMost}${unit})`;
+        goalText = ` (${goal.atLeast}–${goal.atMost}${unit})`;
       } else if (goal.atLeast !== null) {
         goalText = ` (≥${goal.atLeast}${unit})`;
       } else {
