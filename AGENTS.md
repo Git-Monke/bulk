@@ -4,24 +4,44 @@ Read SPEC.md for project context.
 
 ## Stack
 
-Single `index.html` — no build step, CDN-only (DaisyUI v4, Tailwind, SortableJS)
+| Layer                | Tech                                  |
+|----------------------|---------------------------------------|
+| **Build**            | Vite 6, npm dependencies              |
+| **CSS framework**    | Tailwind CSS 3 + DaisyUI 4 (PostCSS) |
+| **Drag & drop**      | SortableJS (npm)                     |
+| **Icons**            | Lucide (tree-shaken via npm)         |
+| **Fonts**            | IBM Plex Sans / IBM Plex Mono (Google Fonts) |
+| **Entry point**      | `index.html` → `src/main.js` (ES module) |
+
+Development: `npm run dev` (Vite dev server). Build: `npm run build` (outputs to `dist/`).
 
 | File | Purpose |
 |------|---------|
 | `src/data.js` | INGREDIENTS, ALL_RECIPES databases |
-| `src/state.js` | gridState Map, entry management, persistence helpers |
-| `src/calculations.js` | calculateRecipeMacros, fmtNum, computeOccurrences, storage |
+| `src/state.js` | gridState Map, entry management |
+| `src/calculations.js` | calculateRecipeMacros, fmtNum, computeOccurrences, saveToStorage, loadGoals, checkGoal |
+| `src/lucide-init.js` | Tree-shakeable Lucide icon registry (`createIcons` with iconMap) |
 | `src/recipe-ui.js` | renderRecipeList, recipe edit modal, ingredient search |
 | `src/ingredient-ui.js` | renderIngredientList, ingredient modal, category dropdowns |
 | `src/grid-ui.js` | renderMealGrid, buildSlotCard, updateSummary |
+| `src/goals-ui.js` | Goals settings modal, TDEE/macro calculator (Mifflin-St Jeor) |
 | `src/print.js` | generatePrintView |
-| `src/agent-ui.js` | Agent chat: conversation state, localStorage, send/stop |
+| `src/agent-state.js` | Agent conversation state, plan snapshot capture/formatting, settings storage (no DOM) |
+| `src/agent-api.js` | Agent OpenRouter streaming fetch, send/cancel controls, settings modal wiring |
+| `src/agent-ui.js` | Agent chat DOM rendering: message list, tool clusters, placeholder, initAgentView |
 | `src/main.js` | Event wiring + initialization (thin glue) |
-| `css/components-buttons-agent.css` | buttons, agent placeholder, agent chat UI, select pill |
-| `css/components-cards.css` | recipe list cards, ingredient list cards |
-| `css/components-slots.css` | ingredient modal, slot cards, range slider |
-| `css/components-panels.css` | right summary cards, edit recipe modal, ingredient search typeahead |
-`css/utilities.css` | empty-state helpers, goal status colors (`.text-error`, `.text-success`) |
+| `src/styles.css` | Tailwind entry point (`@tailwind base/components/utilities`) |
+| `css/tokens.css` | DaisyUI theme overrides (CSS custom properties) |
+| `css/base.css` | Resets, typography, scrollbars, SortableJS helpers |
+| `css/layout.css` | App shell regions |
+| `css/components-buttons-agent.css` | Buttons, agent placeholder, agent chat UI, select pill |
+| `css/components-cards.css` | Recipe list cards, ingredient list cards |
+| `css/components-slots.css` | Ingredient modal, slot cards, range slider |
+| `css/components-panels.css` | Right summary cards, edit recipe modal, ingredient search typeahead |
+| `css/utilities.css` | Empty-state helpers, goal status colors (`.text-error`, `.text-success`) |
+| `conversation-view.html` | Standalone HTML for viewing agent conversation history from localStorage |
+
+CSS files are loaded via `import` in `main.js` (Vite processes them through PostCSS). See `css/style.md` for guide, naming, and import order.
 
 ---
 
@@ -73,23 +93,38 @@ Single `index.html` — no build step, CDN-only (DaisyUI v4, Tailwind, SortableJ
 - `addEntry(variant, meal, recipeId, multiplier)` → pushes, returns entry
 - `removeEntry(variant, meal, entryId)` → splices out by entryId
 - `updateEntryMultiplier(variant, meal, entryId, multiplier)` → mutates in place
+- `clearGridState()` — clears map and resets `nextEntryId`
 
 ---
 
 ## Layout
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  TOP BAR: Days | Meals/day | Variants | Print btn   │
-├──────────┬──────────────────────────┬───────────────┤
-│  LEFT    │                          │    RIGHT      │
-│ SIDEBAR  │       MAIN GRID          │   SIDEBAR     │
-│ (recipes)│  (variant cols × meals)  │  (summary)    │
-│  288px   │       flex-1             │    320px      │
-└──────────┴──────────────────────────┴───────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  HEADER: Brand (Bulk logo + title) | Days | Meals | Variants│
+│                  | Clear | Print plan                        │
+├──────────────┬──────────────────────────┬───────────────────┤
+│  LEFT        │                          │    RIGHT          │
+│  SIDEBAR     │       MAIN GRID          │   SIDEBAR         │
+│  [Manual|Agt]│  (variant cols × meals)  │  (summary)        │
+│  tabs        │                          │                   │
+│  (288px)     │       flex-1             │    320px          │
+└──────────────┴──────────────────────────┴───────────────────┘
 ```
 
-### Meal Grid
+### Top Header
+- **Brand section** — "Bulk" logo (Archive icon) + "Meal Prep Planner" subtitle
+- **Controls** — Days, Meals/day, Variants number inputs
+- **Actions** — Clear button, Print plan button
+
+### Sidebar Tabs
+Top of left sidebar: `Manual` tab and `Agent` tab. Only one visible at a time.
+
+**Manual tab:** Recipe/Ingredient view toggle, category filter, draggable recipe cards (or ingredient list), "+ New" button.
+
+**Agent tab:** Chat interface — message list (placeholder or history), input row with settings gear, text input, send/stop button.
+
+### Meal Grid (Manual tab only)
 - Columns = `input-variants`, each `flex-1 min-w-[200px]`
 - Rows = `input-meals`, each `flex-1`
 - Headers: Day A/B/C…, Meal 1/2…
@@ -103,6 +138,11 @@ Built by `buildSlotCard(variant, meal, entry)` → DOM node. Shows: recipe name,
 - Recipe stacks: `group: { name: 'recipes', pull: true, put: true }` — accepts drops
 - `onAdd` handler on each stack: reads `recipeId` from `data-recipe-id`, removes clone, calls `addEntry()`, calls `buildSlotCard()`, calls `updateSummary()`
 - Reorder within stacks is cosmetic only (DOM only, not gridState)
+
+### Right Sidebar — Summary Panel
+- **Daily average card** — Calories, Protein, Carbs, Fat. Each shows goal range (loaded via `loadGoals()`) and color-coded status (`text-success` when met, `text-error` when violated). Header has TDEE calculator button (left) and goal settings button (right).
+- **Cost card** — Cost per day and per week
+- **Per-day breakdown** — Variant-by-variant totals
 
 ### Summary Calculations (`updateSummary`)
 - Reads `days`, `variants`, `mealsPerDay` from inputs
@@ -119,8 +159,26 @@ Built by `buildSlotCard(variant, meal, entry)` → DOM node. Shows: recipe name,
 - `input-meals`, `input-variants` → `renderMealGrid()` (calls `updateSummary()` at end)
 - Print button → `generatePrintView()`
 - Clear button (`#btn-clear`) → confirms, clears `gridState`, resets `nextEntryId`, calls `clearStorage()`, re-renders
+- `#view-toggle` → switches between recipes/ingredients sidebar
+- `#tab-manual` / `#tab-agent` → switches between manual grid and agent chat view
 
 Storage operations called automatically on mutations via `state.js`.
+
+---
+
+## Goals & TDEE Calculator (`src/goals-ui.js`)
+
+### Goals Settings Modal (`#goals-modal`)
+Set daily macro target ranges (at-least / at-most) for calories, protein, carbs, fat. Saved to localStorage via `loadGoals()`/`saveGoals()`. Real-time: every input change persists and triggers `updateSummary()` to color-code results immediately.
+
+### TDEE Calculator Modal (`#goals-calc-modal`)
+Mifflin-St Jeor based calculator accessible from the summary card gear button area. Supports metric and imperial units (toggle persisted in localStorage). Takes age, gender, height, weight, activity level, and weekly goal (lbs/week gain/lose). Calculates BMR → TDEE → macro targets:
+- Protein: 2.2 g/kg bodyweight
+- Fat: 35% of target calories
+- Carbs: remaining calories
+- Calorie delta: ±500 kcal per lb/week goal
+
+Results shown inline with an "Apply to goals" button that persists the calculated targets to `loadGoals()`.
 
 ---
 
@@ -174,9 +232,11 @@ Reuses `computeOccurrences()`, `calculateRecipeMacros()`, `fmtNum()`. Iterates `
 - `saveGoals(goals)` — persists to localStorage
 - `checkGoal(actual, goal)` — returns `'violated'`, `'ok'`, or `'no_goal'`
 
+**TDEE calculator units** — key `bulk-meal-planner-calc-units` (`"metric"` or `"imperial"`).
+
 **Edit modal behavior**:
 - Recipes: create via `+ New Recipe` button, edit via pencil icon. Modal edits title, serving size, ingredients (search typeahead), amounts. New recipes get slugified ID + timestamp, pushed to `ALL_RECIPES`, persisted. Delete/revert only for custom/modified recipes. Changes trigger `onRecipeModifiedCallback` → refresh list, grid, summary.
-- Ingredients: modal supports "Per 100g" or "Per serving" macro entry (normalizes to `macrosPer100g`), price entry normalizes to `pricePerUnit`. Category field has autocomplete from union of recipe+ingredient categories + defaults `meal`, `drink`, `snack`. "Also add as a recipe" toggles `isRecipe`. **Base ingredients read-only** (no `custom: true` flag). Delete blocked when referenced by non-auto-generated recipes (blocking recipes shown inline). Changes trigger `onIngredientChangedCallback` → re-render sidebar, grid, summary.
+- Ingredients: modal supports "Per 100g" or "Per serving" macro entry (normalizes to `macrosPer100g`), price entry normalizes to `pricePerUnit` (supports Per unit / Per serving / Per package modes). Category field has autocomplete from union of recipe+ingredient categories + defaults `meal`, `drink`, `snack`. "Also add as a recipe" toggles `isRecipe`. **Base ingredients read-only** (no `custom: true` flag). Delete blocked when referenced by non-auto-generated recipes (blocking recipes shown inline). Changes trigger `onIngredientChangedCallback` → re-render sidebar, grid, summary.
 
 ---
 
@@ -233,21 +293,29 @@ src/
 ├── data.js
 ├── state.js
 ├── calculations.js
+├── lucide-init.js
 ├── recipe-ui.js
 ├── ingredient-ui.js
 ├── grid-ui.js
+├── goals-ui.js
 ├── print.js
+├── agent-state.js
+├── agent-api.js
 ├── agent-ui.js
-└── main.js
+├── main.js
+└── styles.css
 ```
 
 **Dependencies:**
-- `main.js` imports: state, calculations, recipe-ui, ingredient-ui, grid-ui, print, agent-ui
+- `main.js` imports: styles.css, tokens.css, base.css, layout.css, components-*.css, utilities.css, lucide-init, sortablejs, recipe-ui, ingredient-ui, grid-ui, print, state, calculations, data, agent-ui, goals-ui
 - `grid-ui.js` imports: state, calculations, data
 - `recipe-ui.js` imports: calculations, data (callback pattern, no circular)
 - `ingredient-ui.js` imports: calculations, data (callback pattern)
+- `goals-ui.js` imports: calculations, grid-ui
 - `print.js` imports: state, calculations, data
-- `agent-ui.js` — self-contained
+- `agent-state.js` imports: lucide-init, state, calculations (no DOM)
+- `agent-api.js` imports: lucide-init, agent-state (no DOM, fetches only)
+- `agent-ui.js` imports: lucide-init, agent-state, agent-api (DOM rendering only)
 - `calculations.js` imports: data
 
 ---
@@ -256,40 +324,54 @@ src/
 
 `css/` split into seven layers: `tokens.css` (DaisyUI overrides / CSS custom properties), `base.css` (resets, typography, scrollbars, SortableJS helpers), `layout.css` (app shell regions), four `components-*.css` (UI elements by group), `utilities.css` (empty-state helpers). See `css/style.md` for guide, naming, import order. Add new styles by purpose; never add to `tokens.css` unless new custom properties.
 
+CSS is imported via `main.js` (processed through Vite + PostCSS/Tailwind), not via `<link>` tags in `index.html`.
+
 ---
 
-## Agent Chat (`src/agent-ui.js`)
+## Agent Chat (`src/agent-ui.js`, `src/agent-api.js`, `src/agent-state.js`)
 
-**Feature flag** — `AGENT_HISTORY_ON_RELOAD` at top of file controls localStorage history restore on load.
+The agent system is split into three files by concern:
 
-**Conversation state** — module-level `conversation` array (loaded from localStorage when flag true):
+### `src/agent-state.js` — Conversation & settings state (no DOM)
+**Feature flag** — `AGENT_HISTORY_ON_RELOAD` in `agent-ui.js` controls localStorage history restore on load (default: `false`).
+
+**Conversation state** — module-level `conversation` array:
 ```javascript
 { type: 'user' | 'agent' | 'tool_call' | 'tool_cluster', content, timestamp, thinking?, toolName?, params?, result? }
 ```
 
-**Storage** — key `bulk-meal-planner-conversation`. Every mutation triggers `saveConversation()`.
+**Storage** — key `bulk-meal-planner-conversation`. Every `pushMessage()` triggers `saveConversation()`.
 
+**Plan snapshot** — `capturePlanSnapshot()` reads DOM inputs + gridState + goals and returns a structured snapshot. `formatStateMessage()` formats it for the model context. On each user message, `maybeAppendStateUpdate()` checks if the plan changed since the last snapshot and, if so, injects a `<state_update>` block into the conversation (hidden from the UI, visible to the model).
+
+**Settings** — key `bulk-meal-planner-agent-settings`. `loadAgentSettings()`/`saveAgentSettings()` for `{ apiKey, model }`.
+
+### `src/agent-api.js` — API calls & UI controls
 **OpenRouter** — `callOpenRouter(userMessage)`:
 1. Reads `apiKey`, `model` from agent settings (`loadAgentSettings()`)
 2. Falls back to inline error if no API key
-3. Builds messages from last `AGENT_CONTEXT_WINDOW` (20) turns, POSTs to `https://openrouter.ai/api/v1/chat/completions` with `stream: true`. API key passed through `toAscii()` to strip non-ASCII
+3. Builds messages from last `AGENT_CONTEXT_WINDOW` (20) turns + system prompt, POSTs to `https://openrouter.ai/api/v1/chat/completions` with `stream: true`. API key passed through `toAscii()` to strip non-ASCII
 4. After 400ms delay shows "Thinking…" bubble, updates in-place from stream
 5. On completion replaces bubble with final `content`, appends error on failure
 6. `cancelAgentTask()` calls `abortController.abort()`, removes thinking node from DOM and state
 
 **Send/Stop button** — `#agent-send` toggles: Send (paper plane) appends message → calls `callOpenRouter()`; Stop (square, amber) calls `cancelAgentTask()`. Enter key in `#agent-input` triggers send. Empty messages ignored.
 
-**Settings button** — `#agent-settings-btn` (gear icon) opens `#agent-settings-modal` (<dialog>). Contains: masked `#agent-api-key` input, `#agent-model-select` dropdown (populated with static models, disabled until key typed). Save persists `{ apiKey, model }` to `bulk-meal-planner-agent-settings`. Wired in `initAgentSettings()`.
+**Settings button** — `#agent-settings-btn` (gear icon) opens `#agent-settings-modal` (`<dialog>`). Contains: masked `#agent-api-key` input, `#agent-model-select` dropdown (populated with static models, disabled until key typed). Save persists to `bulk-meal-planner-agent-settings`. Wired in `initAgentSettings()`.
 
-**Rendering** — `renderAgentMessages(messages)` groups consecutive `tool_call` into `tool_cluster`, renders all. `addAgentMessage(msg)` appends single message. `renderMessage()` updates thinking bubble in-place.
+### `src/agent-ui.js` — DOM rendering
+**Rendering** — `renderAgentMessages(messages)` groups consecutive `tool_call` into `tool_cluster`, renders all. `addAgentMessage(msg)` appends single message to DOM. State update messages (starting with `<state_update>`) are filtered from display.
 
 **Exports:**
 ```javascript
 export function initAgentView()
 export function renderAgentMessages()
 export function addAgentMessage()
-export function clearAgentConversation()
+export function isAtBottom()
 ```
+
+### Standalone conversation viewer
+`conversation-view.html` — opens conversation data from `localStorage` key `bulk-meal-planner-conversation` in a clean standalone page for review/debugging.
 
 ---
 
@@ -297,7 +379,7 @@ export function clearAgentConversation()
 
 - Drag reorder doesn't sync to gridState (cosmetic only)
 - Mobile not optimized (desktop-first per SPEC)
-- ES modules required (modern browser)
+- ES modules required (modern browser with Vite dev server or built output)
 - Agent cannot call tools (text-only protocol)
 - No "Clear chat" button (function exists, no UI trigger)
 
@@ -307,4 +389,4 @@ export function clearAgentConversation()
 
 - **Meal Prep Guide** — only recipes with `prepNotes`. Single-ingredient recipes excluded.
 - **Shopping List** — all ingredients from all recipes, including auto-generated.
-- **Daily Meal Schedule** — shows all recipes used, regardless of prep notes.
+- **Daily Meal Schedule** — shows all recipes used, regardless of prep notesRefactored agent chat.
